@@ -18,7 +18,7 @@ run-api:
 	.venv/bin/uvicorn app.api.main:app --host 0.0.0.0 --port 8000 --reload
 
 run-ui:
-	.venv/bin/streamlit run app/dashboard/app.py --server.port 8501
+	.venv/bin/streamlit run app/dashboard/main.py --server.port 8501
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
