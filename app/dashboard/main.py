@@ -11,6 +11,11 @@ PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
 if str(PROJECT_ROOT) not in sys.path:
     sys.path.insert(0, str(PROJECT_ROOT))
 
+# Invalidate cached src and dashboard modules so hot-reloading never uses stale definitions
+for mod in list(sys.modules.keys()):
+    if mod.startswith("src.") or mod.startswith("app.dashboard.components"):
+        del sys.modules[mod]
+
 import streamlit as st
 from app.dashboard.components.comparison import render_comparison_component
 from app.dashboard.components.diagnostics import render_diagnostics_component
