@@ -59,8 +59,8 @@ RISK_TIERS = {
 COLUMN_ALIASES = {
     "customerID": ["customerid", "customer_id", "id", "account_id", "account_number"],
     "tenure": ["tenure", "tenure_months", "months_active", "customer_tenure"],
-    "MonthlyCharges": ["monthlycharges", "monthly_charges", "monthly_bill", "monthly_fee", "mrr"],
-    "TotalCharges": ["totalcharges", "total_charges", "cumulative_spend", "lifetime_bill"],
+    "MonthlyCharges": ["monthlycharges", "monthly_charges", "monthly_spend", "monthly_bill", "monthly_fee", "mrr"],
+    "TotalCharges": ["totalcharges", "total_charges", "total_spend", "cumulative_spend", "lifetime_bill"],
     "Contract": ["contract", "contract_type", "plan_type", "term"],
     "InternetService": ["internetservice", "internet_service", "connection_type", "broadband"],
     "PaymentMethod": ["paymentmethod", "payment_method", "billing_channel", "payment_type"],

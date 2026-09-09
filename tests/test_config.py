@@ -3,6 +3,7 @@ Unit test to verify configuration constants, paths, and feature schema definitio
 Compatible with both standard unittest and pytest.
 """
 import unittest
+# pyrefly: ignore [missing-import]
 from src.config import (
     ALL_FEATURES,
     CATEGORICAL_FEATURES,

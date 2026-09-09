@@ -1,0 +1,6 @@
+account_id,gender,is_senior,has_partner,has_dependents,tenure_months,phoneservice,multiple_lines,internet_service,security_package,online_backup,device_protection,support_tier,streaming_tv,streaming_movies,contract_type,paperless,billing_channel,monthly_spend,total_spend
+CUST-1001,Female,0,Yes,No,1,No,No phone service,DSL,No,Yes,No,No,No,No,Month-to-month,Yes,Electronic check,29.85,29.85
+CUST-1002,Male,0,No,No,34,Yes,No,DSL,Yes,No,Yes,No,No,No,One year,No,Mailed check,56.95,1889.5
+CUST-1003,Male,0,No,No,2,Yes,No,DSL,Yes,Yes,No,No,No,No,Month-to-month,Yes,Mailed check,53.85,108.15
+CUST-1004,Male,0,No,No,45,No,No phone service,DSL,Yes,No,Yes,Yes,No,No,One year,No,Bank transfer (automatic),42.3,1840.75
+CUST-1005,Female,0,No,No,2,Yes,No,Fiber optic,No,No,No,No,No,No,Month-to-month,Yes,Electronic check,70.7,151.65
