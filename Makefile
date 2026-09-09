@@ -9,16 +9,16 @@ help:
 	@echo "  make clean     - Clean temporary Python cache and build artifacts"
 
 install:
-	pip install -r requirements.txt
+	.venv/bin/pip install -r requirements.txt
 
 test:
-	pytest tests/ -v
+	.venv/bin/python -m unittest discover -s tests -p "test_*.py"
 
 run-api:
-	uvicorn app.api.main:app --host 0.0.0.0 --port 8000 --reload
+	.venv/bin/uvicorn app.api.main:app --host 0.0.0.0 --port 8000 --reload
 
 run-ui:
-	streamlit run app/dashboard/app.py --server.port 8501
+	.venv/bin/streamlit run app/dashboard/app.py --server.port 8501
 
 clean:
 	find . -type d -name "__pycache__" -exec rm -rf {} +
