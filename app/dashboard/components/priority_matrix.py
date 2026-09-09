@@ -12,16 +12,19 @@ from src.decision_engine.rules import prescribe_retention_action
 def render_priority_matrix(
     pipeline: Pipeline,
     df: pd.DataFrame,
-    metadata: dict
+    metadata: dict,
+    model_name: str = "Random Forest",
+    threshold: Optional[float] = None
 ) -> Tuple[pd.DataFrame, Optional[str]]:
     """
     Computes batch predictions, displays KPI cards, renders sorted priority table,
-    and enables one-click enriched CSV downloads.
+    and enables one-click enriched CSV downloads for the selected model.
     """
-    st.markdown("### 2. Executive Retention Priority Matrix")
-    st.caption("Accounts ranked by calibrated churn probability. Filter by risk tier to deploy targeted retention playbooks.")
+    if threshold is None:
+        threshold = metadata.get("optimal_threshold", 0.210)
 
-    threshold = metadata.get("optimal_threshold", 0.210)
+    st.markdown(f"### 2. Executive Retention Priority Matrix — `{model_name}`")
+    st.caption(f"Accounts evaluated via **{model_name}** using decision threshold `τ* = {threshold:.3f}`.")
 
     # 1. Batch Prediction
     scored_df = df.copy()

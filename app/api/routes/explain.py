@@ -1,7 +1,7 @@
 """
-Single-Customer SHAP Explainability & Prescriptive Action Endpoint.
+Single-Customer SHAP Explainability & Prescriptive Action Endpoint with Model Selection.
 """
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 import pandas as pd
 
 from app.api.schemas import CustomerInput, ExplanationResponse, PrescribedActionResponse
@@ -12,19 +12,36 @@ router = APIRouter(tags=["Explainability & Decision Engine"])
 
 
 @router.post("/explain", response_model=ExplanationResponse)
-def explain_single_customer_route(payload: CustomerInput, request: Request):
+def explain_single_customer_route(
+    payload: CustomerInput,
+    request: Request,
+    model: str = Query(
+        default="random_forest",
+        pattern="^(random_forest|logistic_regression)$",
+        description="Choose model: 'random_forest' or 'logistic_regression'"
+    )
+):
     """
     Computes local SHAP attributions and returns root-cause risk drivers
-    alongside tailored Next-Best-Action retention playbooks.
+    alongside tailored Next-Best-Action retention playbooks for the chosen model.
     """
-    pipeline = getattr(request.app.state, "pipeline", None)
-    explainer = getattr(request.app.state, "explainer", None)
+    models = getattr(request.app.state, "models", {})
+    explainers = getattr(request.app.state, "explainers", {})
     metadata = getattr(request.app.state, "metadata", {})
+
+    pipeline = models.get(model)
+    explainer = explainers.get(model)
+
+    # Fallback to default if dict not populated
+    if pipeline is None:
+        pipeline = getattr(request.app.state, "pipeline", None)
+    if explainer is None:
+        explainer = getattr(request.app.state, "explainer", None)
 
     if pipeline is None or explainer is None:
         raise HTTPException(
             status_code=503,
-            detail="Model pipeline or SHAP explainer service is currently unavailable."
+            detail=f"Model pipeline or SHAP explainer for '{model}' is currently unavailable."
         )
 
     customer_dict = payload.model_dump()
@@ -44,7 +61,7 @@ def explain_single_customer_route(payload: CustomerInput, request: Request):
     except Exception as e:
         raise HTTPException(
             status_code=422,
-            detail=f"SHAP attribution computation failed: {str(e)}"
+            detail=f"SHAP attribution computation failed for '{model}': {str(e)}"
         )
 
     prob = explanation["prediction_probability"]
@@ -70,6 +87,7 @@ def explain_single_customer_route(payload: CustomerInput, request: Request):
 
     return ExplanationResponse(
         customer_id=cust_id,
+        model_used=model,
         churn_probability=prob,
         base_value=explanation["base_value"],
         risk_tier=tier,

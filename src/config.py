@@ -16,6 +16,32 @@ PIPELINE_ARTIFACT_PATH = MODELS_DIR / "churn_pipeline.joblib"
 SHAP_EXPLAINER_ARTIFACT_PATH = MODELS_DIR / "shap_explainer.joblib"
 METADATA_ARTIFACT_PATH = MODELS_DIR / "model_metadata.json"
 
+# Multi-Model Pipeline & Explainer Artifact Paths
+RF_PIPELINE_PATH = MODELS_DIR / "random_forest_pipeline.joblib"
+LR_PIPELINE_PATH = MODELS_DIR / "logistic_regression_pipeline.joblib"
+RF_EXPLAINER_PATH = MODELS_DIR / "random_forest_explainer.joblib"
+LR_EXPLAINER_PATH = MODELS_DIR / "logistic_regression_explainer.joblib"
+
+MODEL_REGISTRY = {
+    "random_forest": {
+        "key": "random_forest",
+        "display_name": "Random Forest (Champion Ensemble)",
+        "pipeline_path": RF_PIPELINE_PATH,
+        "explainer_path": RF_EXPLAINER_PATH,
+        "default_threshold": 0.210,
+        "description": "Non-linear ensemble capturing complex multi-service customer interactions."
+    },
+    "logistic_regression": {
+        "key": "logistic_regression",
+        "display_name": "Logistic Regression (Linear Baseline)",
+        "pipeline_path": LR_PIPELINE_PATH,
+        "explainer_path": LR_EXPLAINER_PATH,
+        "default_threshold": 0.310,
+        "description": "Interpretable linear model with transparent odds-ratio risk contributions."
+    }
+}
+DEFAULT_MODEL_KEY = "random_forest"
+
 # Canonical Dataset Schema (IBM Telco Customer Churn)
 ID_COLUMN = "customerID"
 TARGET_COLUMN = "Churn"

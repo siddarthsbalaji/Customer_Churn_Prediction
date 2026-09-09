@@ -1,7 +1,8 @@
 {
+  "default_model": "random_forest",
   "model_name": "RandomForest_Champion",
   "model_type": "RandomForestClassifier",
-  "trained_at_utc": "2026-09-09T07:39:22.119619+00:00",
+  "trained_at_utc": "2026-09-09T07:59:06.678316+00:00",
   "training_records": 5634,
   "test_records": 1409,
   "optimal_threshold": 0.21,
@@ -19,6 +20,82 @@
     "false_positives": 448,
     "true_negatives": 587,
     "false_negatives": 35
+  },
+  "models": {
+    "random_forest": {
+      "key": "random_forest",
+      "model_name": "RandomForest_Champion",
+      "display_name": "Random Forest (Champion Ensemble)",
+      "model_type": "RandomForestClassifier",
+      "pipeline_file": "random_forest_pipeline.joblib",
+      "optimal_threshold": 0.21,
+      "cost_optimal_threshold": 0.1,
+      "metrics_default": {
+        "threshold": 0.5,
+        "accuracy": 0.7743,
+        "precision": 0.5628,
+        "recall": 0.6711,
+        "f1": 0.6122,
+        "f2": 0.6462,
+        "roc_auc": 0.8393,
+        "pr_auc": 0.6439,
+        "true_positives": 251,
+        "false_positives": 195,
+        "true_negatives": 840,
+        "false_negatives": 123
+      },
+      "metrics_calibrated": {
+        "threshold": 0.21,
+        "accuracy": 0.6572,
+        "precision": 0.4307,
+        "recall": 0.9064,
+        "f1": 0.584,
+        "f2": 0.7424,
+        "roc_auc": 0.8393,
+        "pr_auc": 0.6439,
+        "true_positives": 339,
+        "false_positives": 448,
+        "true_negatives": 587,
+        "false_negatives": 35
+      }
+    },
+    "logistic_regression": {
+      "key": "logistic_regression",
+      "model_name": "LogisticRegression_Baseline",
+      "display_name": "Logistic Regression (Linear Baseline)",
+      "model_type": "LogisticRegression",
+      "pipeline_file": "logistic_regression_pipeline.joblib",
+      "optimal_threshold": 0.31,
+      "cost_optimal_threshold": 0.18,
+      "metrics_default": {
+        "threshold": 0.5,
+        "accuracy": 0.7331,
+        "precision": 0.4983,
+        "recall": 0.7914,
+        "f1": 0.6116,
+        "f2": 0.7081,
+        "roc_auc": 0.842,
+        "pr_auc": 0.6362,
+        "true_positives": 296,
+        "false_positives": 298,
+        "true_negatives": 737,
+        "false_negatives": 78
+      },
+      "metrics_calibrated": {
+        "threshold": 0.31,
+        "accuracy": 0.6586,
+        "precision": 0.433,
+        "recall": 0.9251,
+        "f1": 0.5899,
+        "f2": 0.7538,
+        "roc_auc": 0.842,
+        "pr_auc": 0.6362,
+        "true_positives": 346,
+        "false_positives": 453,
+        "true_negatives": 582,
+        "false_negatives": 28
+      }
+    }
   },
   "tournament_comparison": {
     "LogisticRegression_Baseline": {

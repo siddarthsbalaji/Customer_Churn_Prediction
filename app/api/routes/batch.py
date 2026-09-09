@@ -1,9 +1,9 @@
 """
-Batch CSV Upload, Schema Validation & Risk Ranking Endpoints.
+Batch CSV Upload, Schema Validation & Risk Ranking Endpoints with Model Selection.
 """
 import io
 from typing import List
-from fastapi import APIRouter, File, HTTPException, Request, UploadFile
+from fastapi import APIRouter, File, HTTPException, Query, Request, UploadFile
 from fastapi.responses import StreamingResponse
 import pandas as pd
 
@@ -18,11 +18,16 @@ router = APIRouter(tags=["Batch Processing"])
 @router.post("/batch-risk", response_model=BatchSummaryResponse)
 async def process_batch_risk(
     request: Request,
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    model: str = Query(
+        default="random_forest",
+        pattern="^(random_forest|logistic_regression)$",
+        description="Choose model: 'random_forest' or 'logistic_regression'"
+    )
 ):
     """
-    Ingests dynamic user CSV file, validates columns, executes batch model scoring,
-    and returns prioritized customer accounts ranked by churn probability.
+    Ingests dynamic user CSV file, validates columns, executes batch model scoring
+    with the selected model, and returns prioritized customer accounts ranked by churn probability.
     """
     if not file.filename.endswith(".csv"):
         raise HTTPException(
@@ -30,12 +35,19 @@ async def process_batch_risk(
             detail="Unsupported file format. Please upload a valid CSV file (.csv)."
         )
 
-    pipeline = getattr(request.app.state, "pipeline", None)
+    models = getattr(request.app.state, "models", {})
     metadata = getattr(request.app.state, "metadata", {})
-    threshold = metadata.get("optimal_threshold", 0.210)
+
+    pipeline = models.get(model)
+    if pipeline is None:
+        pipeline = getattr(request.app.state, "pipeline", None)
 
     if pipeline is None:
-        raise HTTPException(status_code=503, detail="Model pipeline is currently unavailable.")
+        raise HTTPException(status_code=503, detail=f"Model pipeline '{model}' is currently unavailable.")
+
+    model_meta = metadata.get("models", {}).get(model, {})
+    default_thresh = 0.210 if model == "random_forest" else 0.310
+    threshold = model_meta.get("optimal_threshold", default_thresh)
 
     contents = await file.read()
     try:
@@ -118,6 +130,8 @@ async def process_batch_risk(
     total_mrr_at_risk = sum(r.monthly_charges for r in results if r.is_at_risk)
 
     return BatchSummaryResponse(
+        model_used=model,
+        decision_threshold_applied=threshold,
         total_records=len(results),
         at_risk_count=at_risk_count,
         critical_risk_count=critical_count,
@@ -130,13 +144,18 @@ async def process_batch_risk(
 @router.post("/batch-risk/export-csv")
 async def export_batch_risk_csv(
     request: Request,
-    file: UploadFile = File(...)
+    file: UploadFile = File(...),
+    model: str = Query(
+        default="random_forest",
+        pattern="^(random_forest|logistic_regression)$",
+        description="Choose model: 'random_forest' or 'logistic_regression'"
+    )
 ):
     """
-    Executes batch inference and streams an enriched CSV download
+    Executes batch inference with chosen model and streams an enriched CSV download
     including risk probabilities, risk tiers, and prescribed actions.
     """
-    summary = await process_batch_risk(request, file)
+    summary = await process_batch_risk(request, file, model=model)
 
     export_df = pd.DataFrame([r.model_dump() for r in summary.results])
 
@@ -148,5 +167,5 @@ async def export_batch_risk_csv(
         iter([output.getvalue()]),
         media_type="text/csv"
     )
-    response.headers["Content-Disposition"] = "attachment; filename=prioritized_retention_accounts.csv"
+    response.headers["Content-Disposition"] = f"attachment; filename=prioritized_retention_accounts_{model}.csv"
     return response

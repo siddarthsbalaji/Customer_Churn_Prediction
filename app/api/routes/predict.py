@@ -1,7 +1,7 @@
 """
-Single-Customer Churn Prediction Endpoint.
+Single-Customer Churn Prediction Endpoint with Model Selection.
 """
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, HTTPException, Query, Request
 import pandas as pd
 
 from app.api.schemas import CustomerInput, PredictionResponse
@@ -10,24 +10,38 @@ router = APIRouter(tags=["Inference"])
 
 
 @router.post("/predict", response_model=PredictionResponse)
-def predict_single_customer(payload: CustomerInput, request: Request):
+def predict_single_customer(
+    payload: CustomerInput,
+    request: Request,
+    model: str = Query(
+        default="random_forest",
+        pattern="^(random_forest|logistic_regression)$",
+        description="Choose model: 'random_forest' or 'logistic_regression'"
+    )
+):
     """
-    Evaluates calibrated churn risk probability for a single customer record.
+    Evaluates calibrated churn risk probability for a single customer record
+    using the specified model ('random_forest' or 'logistic_regression').
     """
-    pipeline = getattr(request.app.state, "pipeline", None)
+    models = getattr(request.app.state, "models", {})
     metadata = getattr(request.app.state, "metadata", {})
+
+    pipeline = models.get(model)
+    if pipeline is None:
+        pipeline = getattr(request.app.state, "pipeline", None)
 
     if pipeline is None:
         raise HTTPException(
             status_code=503,
-            detail="Model pipeline is currently unavailable. Please verify startup logs."
+            detail=f"Model pipeline '{model}' is currently unavailable."
         )
 
-    threshold = metadata.get("optimal_threshold", 0.210)
+    model_meta = metadata.get("models", {}).get(model, {})
+    default_thresh = 0.210 if model == "random_forest" else 0.310
+    threshold = model_meta.get("optimal_threshold", default_thresh)
+
     customer_dict = payload.model_dump()
     cust_id = customer_dict.get("customerID", "CUST-DEFAULT")
-
-    # Ingest record as single-row DataFrame
     df = pd.DataFrame([customer_dict])
 
     try:
@@ -48,6 +62,7 @@ def predict_single_customer(payload: CustomerInput, request: Request):
 
     return PredictionResponse(
         customer_id=cust_id,
+        model_used=model,
         churn_probability=round(prob, 4),
         is_at_risk=prob >= threshold,
         risk_tier=tier,

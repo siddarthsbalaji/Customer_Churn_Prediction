@@ -60,6 +60,7 @@ class CustomerInput(BaseModel):
 
 class PredictionResponse(BaseModel):
     customer_id: str
+    model_used: str = "random_forest"
     churn_probability: float
     is_at_risk: bool
     risk_tier: str
@@ -86,12 +87,22 @@ class PrescribedActionResponse(BaseModel):
 
 class ExplanationResponse(BaseModel):
     customer_id: str
+    model_used: str = "random_forest"
     churn_probability: float
     base_value: float
     risk_tier: str
     risk_drivers: List[DriverContribution]
     protective_factors: List[DriverContribution]
     prescribed_action: PrescribedActionResponse
+
+
+class ModelComparisonResponse(BaseModel):
+    customer_id: str
+    random_forest: PredictionResponse
+    logistic_regression: PredictionResponse
+    probability_delta: float
+    tier_agreement: bool
+    agreed_risk_drivers: List[str]
 
 
 class BatchCustomerResult(BaseModel):
@@ -105,6 +116,8 @@ class BatchCustomerResult(BaseModel):
 
 
 class BatchSummaryResponse(BaseModel):
+    model_used: str = "random_forest"
+    decision_threshold_applied: float = 0.210
     total_records: int
     at_risk_count: int
     critical_risk_count: int
@@ -117,5 +130,6 @@ class HealthResponse(BaseModel):
     status: str
     service: str
     version: str
+    available_models: List[str]
     model_loaded: bool
     explainer_loaded: bool

@@ -1,6 +1,8 @@
 """
 Interactive "What-If" Counterfactual Retention Simulator Component.
+Supports single-model simulation and simultaneous dual-model evaluation.
 """
+from typing import Optional
 import pandas as pd
 import streamlit as st
 from sklearn.pipeline import Pipeline
@@ -9,7 +11,10 @@ from sklearn.pipeline import Pipeline
 def render_simulator_component(
     pipeline: Pipeline,
     baseline_series: pd.Series,
-    customer_id: str
+    customer_id: str,
+    model_name: str = "Random Forest",
+    alt_pipeline: Optional[Pipeline] = None,
+    alt_model_name: str = "Logistic Regression"
 ):
     """
     Real-time counterfactual simulation sandbox enabling retention managers
@@ -17,8 +22,7 @@ def render_simulator_component(
     """
     st.markdown(f"### 4. Interactive 'What-If' Retention Simulator: Account `{customer_id}`")
     st.caption(
-        "Simulate contract extensions, rate discounts, and service additions. "
-        "Observe real-time changes in churn probability to design high-ROI retention offers."
+        f"Simulate adjustments and observe real-time churn risk reductions using **{model_name}**."
     )
 
     # State synchronization: Reset simulator sliders when switching customers
@@ -87,43 +91,69 @@ def render_simulator_component(
     sim_df["TechSupport"] = sim_tech
     sim_df["OnlineSecurity"] = sim_security
 
-    # Compute Predictions
+    # Compute Predictions on Active Model
     base_prob = float(pipeline.predict_proba(base_df)[0][1])
     sim_prob = float(pipeline.predict_proba(sim_df)[0][1])
     delta_prob = sim_prob - base_prob
 
-    # Display Live Simulation Results
-    st.markdown("---")
-    m1, m2, m3 = st.columns(3)
+    # Simultaneous Dual-Model Toggle
+    simulate_both = False
+    if alt_pipeline is not None:
+        simulate_both = st.checkbox(
+            f"Compare simulation outcome against {alt_model_name} simultaneously",
+            value=True,
+            help="Evaluate how both linear and non-linear models react to the same intervention."
+        )
 
-    m1.metric("Baseline Churn Risk", f"{base_prob * 100:.1f}%")
-    m2.metric(
-        "Simulated Churn Risk",
-        f"{sim_prob * 100:.1f}%",
-        delta=f"{delta_prob * 100:.1f}%",
-        delta_color="inverse"
-    )
+    st.markdown("---")
+
+    if simulate_both and alt_pipeline is not None:
+        alt_base_prob = float(alt_pipeline.predict_proba(base_df)[0][1])
+        alt_sim_prob = float(alt_pipeline.predict_proba(sim_df)[0][1])
+        alt_delta = alt_sim_prob - alt_base_prob
+
+        st.markdown("##### 🔬 Dual-Model Simulation Comparison")
+        col_m1, col_m2 = st.columns(2)
+
+        with col_m1:
+            st.markdown(f"**{model_name}:**")
+            sub_c1, sub_c2 = st.columns(2)
+            sub_c1.metric("Baseline Risk", f"{base_prob * 100:.1f}%")
+            sub_c2.metric("Simulated Risk", f"{sim_prob * 100:.1f}%", delta=f"{delta_prob * 100:.1f}%", delta_color="inverse")
+
+        with col_m2:
+            st.markdown(f"**{alt_model_name}:**")
+            sub_a1, sub_a2 = st.columns(2)
+            sub_a1.metric("Baseline Risk", f"{alt_base_prob * 100:.1f}%")
+            sub_a2.metric("Simulated Risk", f"{alt_sim_prob * 100:.1f}%", delta=f"{alt_delta * 100:.1f}%", delta_color="inverse")
+    else:
+        m1, m2 = st.columns(2)
+        m1.metric("Baseline Churn Risk", f"{base_prob * 100:.1f}%")
+        m2.metric(
+            "Simulated Churn Risk",
+            f"{sim_prob * 100:.1f}%",
+            delta=f"{delta_prob * 100:.1f}%",
+            delta_color="inverse"
+        )
 
     # Strategy Efficacy Assessment
     if sim_prob < 0.40 and base_prob >= 0.40:
         outcome_badge = (
-            "<div style='background-color:#dcfce7; color:#166534; padding:0.8rem; border-radius:8px; font-weight:600;'>"
-            "🟢 Strategy Highly Effective: Account successfully de-escalated to LOW RISK safe tier."
+            "<div style='background-color:#dcfce7; color:#166534; padding:0.8rem; border-radius:8px; font-weight:600; margin-top:0.5rem;'>"
+            f"🟢 Strategy Highly Effective ({model_name}): Account successfully de-escalated to LOW RISK safe tier."
             "</div>"
         )
     elif sim_prob < base_prob:
         outcome_badge = (
-            "<div style='background-color:#fef3c7; color:#92400e; padding:0.8rem; border-radius:8px; font-weight:600;'>"
-            "🟡 Moderate Risk Reduction: Risk mitigated, but additional contractual incentives recommended."
+            "<div style='background-color:#fef3c7; color:#92400e; padding:0.8rem; border-radius:8px; font-weight:600; margin-top:0.5rem;'>"
+            f"🟡 Moderate Risk Reduction ({model_name}): Risk mitigated, but additional contractual incentives recommended."
             "</div>"
         )
     else:
         outcome_badge = (
-            "<div style='background-color:#fee2e2; color:#991b1b; padding:0.8rem; border-radius:8px; font-weight:600;'>"
-            "🔴 Strategy Ineffective: Risk remains elevated. Core underlying drivers are not addressed."
+            "<div style='background-color:#fee2e2; color:#991b1b; padding:0.8rem; border-radius:8px; font-weight:600; margin-top:0.5rem;'>"
+            f"🔴 Strategy Ineffective ({model_name}): Risk remains elevated. Core underlying drivers are not addressed."
             "</div>"
         )
 
-    with m3:
-        st.markdown("**Intervention Assessment:**", unsafe_allow_html=True)
-        st.markdown(outcome_badge, unsafe_allow_html=True)
+    st.markdown(outcome_badge, unsafe_allow_html=True)

@@ -133,18 +133,46 @@ def train_and_evaluate_tournament(
     calibrated_threshold = champion_eval["calibrated_threshold"]
 
     # Extract feature names from fitted preprocessor
-    feature_names = get_feature_names(champion_pipeline.named_steps["preprocessor"])
+    feature_names = get_feature_names(fitted_pipelines["RandomForest_Champion"].named_steps["preprocessor"])
 
-    # 4. Construct Metadata Document
+    # 4. Construct Multi-Model Metadata Document
+    rf_eval = tournament_results["RandomForest_Champion"]
+    lr_eval = tournament_results["LogisticRegression_Baseline"]
+
     metadata = {
-        "model_name": champion_name,
+        "default_model": "random_forest",
+        "model_name": "RandomForest_Champion",
         "model_type": "RandomForestClassifier",
         "trained_at_utc": datetime.now(timezone.utc).isoformat(),
         "training_records": len(X_train),
         "test_records": len(X_test),
-        "optimal_threshold": calibrated_threshold,
-        "cost_optimal_threshold": champion_eval["cost_optimal_threshold"],
-        "champion_test_metrics": champion_eval["test_metrics_optimal"],
+        "optimal_threshold": rf_eval["calibrated_threshold"],
+        "cost_optimal_threshold": rf_eval["cost_optimal_threshold"],
+        "champion_test_metrics": rf_eval["test_metrics_optimal"],
+        "models": {
+            "random_forest": {
+                "key": "random_forest",
+                "model_name": "RandomForest_Champion",
+                "display_name": "Random Forest (Champion Ensemble)",
+                "model_type": "RandomForestClassifier",
+                "pipeline_file": "random_forest_pipeline.joblib",
+                "optimal_threshold": rf_eval["calibrated_threshold"],
+                "cost_optimal_threshold": rf_eval["cost_optimal_threshold"],
+                "metrics_default": rf_eval["test_metrics_default"],
+                "metrics_calibrated": rf_eval["test_metrics_optimal"]
+            },
+            "logistic_regression": {
+                "key": "logistic_regression",
+                "model_name": "LogisticRegression_Baseline",
+                "display_name": "Logistic Regression (Linear Baseline)",
+                "model_type": "LogisticRegression",
+                "pipeline_file": "logistic_regression_pipeline.joblib",
+                "optimal_threshold": lr_eval["calibrated_threshold"],
+                "cost_optimal_threshold": lr_eval["cost_optimal_threshold"],
+                "metrics_default": lr_eval["test_metrics_default"],
+                "metrics_calibrated": lr_eval["test_metrics_optimal"]
+            }
+        },
         "tournament_comparison": {
             k: {
                 "test_roc_auc": v["test_metrics_default"]["roc_auc"],
@@ -160,19 +188,38 @@ def train_and_evaluate_tournament(
         "encoded_feature_names": feature_names
     }
 
-    # 5. Serialize Artifacts
-    print(f"\n--- Serializing Champion Pipeline Artifacts ---")
+    # 5. Serialize Artifacts (Both Models + Metadata)
+    print(f"\n--- Serializing Multi-Model Pipelines & Metadata ---")
+    from src.config import RF_PIPELINE_PATH, LR_PIPELINE_PATH
+
+    # Save Random Forest
     save_pipeline_artifacts(
-        pipeline=champion_pipeline,
+        pipeline=fitted_pipelines["RandomForest_Champion"],
+        metadata=metadata,
+        pipeline_path=RF_PIPELINE_PATH,
+        metadata_path=METADATA_ARTIFACT_PATH
+    )
+    # Save default churn_pipeline.joblib alias
+    save_pipeline_artifacts(
+        pipeline=fitted_pipelines["RandomForest_Champion"],
         metadata=metadata,
         pipeline_path=PIPELINE_ARTIFACT_PATH,
         metadata_path=METADATA_ARTIFACT_PATH
     )
-    print(f"Pipeline saved to: {PIPELINE_ARTIFACT_PATH}")
-    print(f"Metadata saved to: {METADATA_ARTIFACT_PATH}")
+    # Save Logistic Regression
+    save_pipeline_artifacts(
+        pipeline=fitted_pipelines["LogisticRegression_Baseline"],
+        metadata=metadata,
+        pipeline_path=LR_PIPELINE_PATH,
+        metadata_path=METADATA_ARTIFACT_PATH
+    )
+
+    print(f"Random Forest Pipeline saved to:     {RF_PIPELINE_PATH}")
+    print(f"Logistic Regression Pipeline saved to: {LR_PIPELINE_PATH}")
+    print(f"Master Metadata saved to:              {METADATA_ARTIFACT_PATH}")
     print("=" * 65)
 
-    return champion_pipeline, metadata
+    return fitted_pipelines, metadata
 
 
 if __name__ == "__main__":

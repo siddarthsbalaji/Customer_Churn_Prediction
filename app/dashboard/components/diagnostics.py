@@ -19,7 +19,8 @@ def render_diagnostics_component(
     explainer: Any,
     metadata: dict,
     customer_df: pd.DataFrame,
-    customer_id: str
+    customer_id: str,
+    model_name: str = "Random Forest"
 ):
     """
     Renders individual customer diagnostics:
@@ -27,8 +28,8 @@ def render_diagnostics_component(
     2. SHAP Waterfall plot
     3. Prescriptive Next-Best-Action retention playbook card
     """
-    st.markdown(f"### 3. Root-Cause Diagnostics: Account `{customer_id}`")
-    st.caption("Local SHAP explainability audit uncovering the exact push-and-pull factors driving this customer's risk.")
+    st.markdown(f"### 3. Root-Cause Diagnostics: Account `{customer_id}` (`{model_name}`)")
+    st.caption(f"Local SHAP explainability audit evaluating feature attributions from **{model_name}**.")
 
     feature_names = metadata.get("encoded_feature_names", [])
 
