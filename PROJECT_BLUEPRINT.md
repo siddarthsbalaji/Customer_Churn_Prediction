@@ -1,10 +1,7 @@
 # Customer Churn Decision Engine: End-to-End Technical Execution Blueprint
-
-**Role Context:** Senior Machine Learning Engineer & Full-Stack Data Solutions Architect  
-**Project Goal:** Transform static churn analysis into an enterprise-grade retention decision engine featuring dynamic CSV uploads, automated schema validation, SHAP explainability, and counterfactual "What-If" simulations.
-
+**Role Context:**Senior Machine Learning Engineer & Full-Stack Data Solutions Architect
+**Project Goal:**Transform static churn analysis into an enterprise-grade retention decision engine featuring dynamic CSV uploads, automated schema validation, SHAP explainability, and counterfactual"What-If" simulations.
 ---
-
 ```mermaid
 flowchart TD
     subgraph Data_Layer ["Data & Training Pipeline"]
@@ -29,11 +26,8 @@ flowchart TD
         SingleDiag --> WhatIf[Counterfactual Simulator]
     end
 ```
-
 ---
-
 ## 1. Repository & Folder Structure
-
 ```text
 churn-decision-engine/
 ├── .github/
@@ -104,49 +98,42 @@ churn-decision-engine/
 ├── pyproject.toml
 └── requirements.txt
 ```
-
 ---
-
 ## 2. Phase-by-Phase Execution Plan
-
 ### Phase 1: Exploratory Data Analysis & Robust Pipeline Construction
-1. **Anomaly Resolution & Type Hygiene:**
-   - Detect and resolve the critical IBM Telco flaw: `TotalCharges` contains `11` whitespace entries (`" "`) corresponding to customers with `tenure == 0`. Force-coerce these to `0.0` or float `NaN`, followed by median imputation.
-   - Drop the arbitrary identifier `customerID` from the feature matrix while persisting it as an index key for tracking.
-2. **Domain-Driven Feature Engineering:**
-   - **Tenure Cohorts:** Discretize tenure into operational stages (`0-12m`, `13-24m`, `25-48m`, `49-72m`).
-   - **Service Density Score:** Count of subscribed digital add-ons (`OnlineSecurity`, `OnlineBackup`, `DeviceProtection`, `TechSupport`, `StreamingTV`, `StreamingMovies`) to measure product stickiness.
-   - **Charge Velocity:** Ratio of `MonthlyCharges` to `TotalCharges` normalized against `tenure` to isolate rapid price inflation.
-   - **High-Risk Flags:** Boolean flag for `Month-to-month` contract combined with `Electronic check` payment method.
-3. **Unified Scikit-Learn Pipeline:**
-   - Construct custom transformers inheriting from `BaseEstimator` and `TransformerMixin`.
-   - Segment transformations via `ColumnTransformer`:
-     - **Numerical:** `SimpleImputer(strategy='median')` $\rightarrow$ `StandardScaler()`.
-     - **Categorical:** `SimpleImputer(strategy='most_frequent')` $\rightarrow$ `OneHotEncoder(handle_unknown='ignore', sparse_output=False)`.
-   - Prevent all data leakage: Fit transformers exclusively on `X_train` and serialize the complete pipeline via `joblib`.
-
+1.**Anomaly Resolution & Type Hygiene:**
+   - Detect and resolve the critical IBM Telco flaw:`TotalCharges` contains`11` whitespace entries (`" "`) corresponding to customers with`tenure == 0`. Force-coerce these to`0.0` or float`NaN`, followed by median imputation.
+   - Drop the arbitrary identifier`customerID` from the feature matrix while persisting it as an index key for tracking.
+2.**Domain-Driven Feature Engineering:**
+   -**Tenure Cohorts:**Discretize tenure into operational stages (`0-12m`,`13-24m`,`25-48m`,`49-72m`).
+   -**Service Density Score:**Count of subscribed digital add-ons (`OnlineSecurity`,`OnlineBackup`,`DeviceProtection`,`TechSupport`,`StreamingTV`,`StreamingMovies`) to measure product stickiness.
+   -**Charge Velocity:**Ratio of`MonthlyCharges` to`TotalCharges` normalized against`tenure` to isolate rapid price inflation.
+   -**High-Risk Flags:**Boolean flag for`Month-to-month` contract combined with`Electronic check` payment method.
+3.**Unified Scikit-Learn Pipeline:**
+   - Construct custom transformers inheriting from`BaseEstimator` and`TransformerMixin`.
+   - Segment transformations via`ColumnTransformer`:
+     -**Numerical:**`SimpleImputer(strategy='median')` $\rightarrow$`StandardScaler()`.
+     -**Categorical:**`SimpleImputer(strategy='most_frequent')` $\rightarrow$`OneHotEncoder(handle_unknown='ignore', sparse_output=False)`.
+   - Prevent all data leakage: Fit transformers exclusively on`X_train` and serialize the complete pipeline via`joblib`.
 ---
-
 ### Phase 2: Model Training, Cost-Sensitive Optimization & Cross-Validation
-1. **Model Tournament:**
-   - **Baseline:** `LogisticRegression(class_weight='balanced', solver='liblinear', max_iter=1000)` to establish an interpretable linear odds-ratio benchmark.
-   - **Champion:** `RandomForestClassifier(n_estimators=300, max_depth=12, min_samples_split=5, class_weight='balanced_subsample', random_state=42)`.
-2. **Cross-Validation & Imbalance Strategy:**
-   - Implement a 5-fold `StratifiedKFold` CV scheme to preserve the ~26.5% churn distribution across splits.
-   - Integrate `imbalanced-learn` within an `imblearn.pipeline.Pipeline` using `SMOTENC` on categorical-encoded training folds to evaluate synthetic oversampling against pure algorithmic cost weighting (`class_weight='balanced'`).
-3. **Business-Oriented Metric Optimization:**
+1.**Model Tournament:**
+   -**Baseline:**`LogisticRegression(class_weight='balanced', solver='liblinear', max_iter=1000)` to establish an interpretable linear odds-ratio benchmark.
+   -**Champion:**`RandomForestClassifier(n_estimators=300, max_depth=12, min_samples_split=5, class_weight='balanced_subsample', random_state=42)`.
+2.**Cross-Validation & Imbalance Strategy:**
+   - Implement a 5-fold`StratifiedKFold` CV scheme to preserve the ~26.5% churn distribution across splits.
+   - Integrate`imbalanced-learn` within an`imblearn.pipeline.Pipeline` using`SMOTENC` on categorical-encoded training folds to evaluate synthetic oversampling against pure algorithmic cost weighting (`class_weight='balanced'`).
+3.**Business-Oriented Metric Optimization:**
    - Accuracy is strictly deprioritized due to class imbalance and asymmetric business costs:
-     - **False Negative (FN):** At-risk customer undetected $\rightarrow$ Loss of entire Customer Lifetime Value (CLV $\approx -\$500$).
-     - **False Positive (FP):** Loyal customer misclassified as at-risk $\rightarrow$ Cost of unnecessary retention discount ($\approx -\$35$).
+     -**False Negative (FN):**At-risk customer undetected $\rightarrow$ Loss of entire Customer Lifetime Value (CLV $\approx-\$500$).
+     -**False Positive (FP):**Loyal customer misclassified as at-risk $\rightarrow$ Cost of unnecessary retention discount ($\approx-\$35$).
    - Execute Precision-Recall threshold calibration: Replace the default $0.5$ decision threshold with the cost-minimizing threshold $\tau^*$ derived by maximizing $F_{\beta}$ ($\beta=2$, weighting Recall over Precision) and minimizing expected financial loss.
-
 ---
-
 ### Phase 3: Explainability & Prescriptive Action Engine
-1. **SHAP Integration:**
-   - **Global Audit:** Generate summary beeswarm plots and mean absolute SHAP feature importance to validate model alignment with business logic.
-   - **Local Inference:** Initialize `shap.TreeExplainer` on the Random Forest model. To ensure sub-100ms API latency, pre-compute a reference background matrix using $K$-Means clustering ($k=50$) on the preprocessed training set.
-2. **Automated "Next-Best-Action" Decision Matrix:**
+1.**SHAP Integration:**
+   -**Global Audit:**Generate summary beeswarm plots and mean absolute SHAP feature importance to validate model alignment with business logic.
+   -**Local Inference:**Initialize`shap.TreeExplainer` on the Random Forest model. To ensure sub-100ms API latency, pre-compute a reference background matrix using $K$-Means clustering ($k=50$) on the preprocessed training set.
+2.**Automated"Next-Best-Action" Decision Matrix:**
    - The engine evaluates the customer's predicted risk alongside their dominant positive SHAP features to trigger targeted retention playbooks:
 
 | Churn Risk Tier | Dominant Risk Factor (SHAP Driver) | Prescribed Retention Playbook (Next-Best-Action) | Projected Cost / Incentive |

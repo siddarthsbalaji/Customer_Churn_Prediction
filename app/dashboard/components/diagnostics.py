@@ -6,14 +6,11 @@ import matplotlib.pyplot as plt
 import pandas as pd
 import streamlit as st
 from sklearn.pipeline import Pipeline
-
 from src.decision_engine.rules import prescribe_retention_action
 from src.explainability.shap_service import (
     explain_single_customer,
     render_customer_waterfall_figure,
 )
-
-
 def render_diagnostics_component(
     pipeline: Pipeline,
     explainer: Any,
@@ -30,46 +27,36 @@ def render_diagnostics_component(
     """
     st.markdown(f"### 3. Root-Cause Diagnostics: Account `{customer_id}` (`{model_name}`)")
     st.caption(f"Local SHAP explainability audit evaluating feature attributions from **{model_name}**.")
-
-    feature_names = metadata.get("encoded_feature_names", [])
-
-    # Compute explanation
-    explanation = explain_single_customer(
+    feature_names=metadata.get("encoded_feature_names", [])
+    explanation=explain_single_customer(
         pipeline=pipeline,
         explainer=explainer,
         customer_raw_df=customer_df,
         feature_names=feature_names,
         top_k=5
     )
-
-    prob = explanation["prediction_probability"]
-    tier = "CRITICAL" if prob >= 0.70 else ("MODERATE" if prob >= 0.40 else "LOW")
+    prob=explanation["prediction_probability"]
+    tier = "CRITICAL" if prob>=0.70 else ("MODERATE" if prob>=0.40 else "LOW")
     badge_class = f"badge-{tier.lower()}"
-
-    # Account Profile Snapshot Metrics
-    c1, c2, c3, c4 = st.columns(4)
+    c1, c2, c3, c4=st.columns(4)
     with c1:
         st.markdown(f"**Risk Evaluation:**<br><span class='{badge_class}'>{tier} RISK ({prob*100:.1f}%)</span>", unsafe_allow_html=True)
     with c2:
-        mrr = float(customer_df.iloc[0].get("MonthlyCharges", 0.0))
+        mrr=float(customer_df.iloc[0].get("MonthlyCharges", 0.0))
         st.metric("Monthly Recurring Spend", f"${mrr:.2f}")
     with c3:
-        tenure = int(customer_df.iloc[0].get("tenure", 0))
+        tenure=int(customer_df.iloc[0].get("tenure", 0))
         st.metric("Tenure Active", f"{tenure} Months")
     with c4:
-        contract = str(customer_df.iloc[0].get("Contract", "Month-to-month"))
+        contract=str(customer_df.iloc[0].get("Contract", "Month-to-month"))
         st.metric("Contract Type", contract)
-
     st.markdown("---")
-
-    col_chart, col_playbook = st.columns([3, 2])
-
+    col_chart, col_playbook=st.columns([3, 2])
     with col_chart:
         st.markdown("#### 🔍 SHAP Local Attribution Waterfall")
         st.caption("Red bars push risk higher toward churn; blue bars push risk lower toward retention.")
-
         with st.spinner("Generating SHAP waterfall plot..."):
-            fig = render_customer_waterfall_figure(
+            fig=render_customer_waterfall_figure(
                 pipeline=pipeline,
                 explainer=explainer,
                 customer_raw_df=customer_df,
@@ -79,17 +66,14 @@ def render_diagnostics_component(
             )
             st.pyplot(fig, use_container_width=True)
             plt.close(fig)
-
     with col_playbook:
         st.markdown("#### 🎯 Prescriptive Retention Playbook")
         st.caption("Automated Next-Best-Action tailored to this customer's acute risk drivers.")
-
-        action = prescribe_retention_action(
+        action=prescribe_retention_action(
             churn_prob=prob,
             top_shap_drivers=explanation["risk_drivers"],
             customer_record=customer_df.iloc[0].to_dict()
         )
-
         st.markdown(f"""
         <div class="playbook-card">
             <div class="playbook-title">{action['action_title']}</div>

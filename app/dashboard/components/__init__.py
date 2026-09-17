@@ -6,8 +6,7 @@ from app.dashboard.components.diagnostics import render_diagnostics_component
 from app.dashboard.components.priority_matrix import render_priority_matrix
 from app.dashboard.components.simulator import render_simulator_component
 from app.dashboard.components.uploader import render_uploader_component
-
-__all__ = [
+__all__=[
     "render_comparison_component",
     "render_diagnostics_component",
     "render_priority_matrix",

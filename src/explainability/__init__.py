@@ -10,8 +10,7 @@ from src.explainability.shap_service import (
     humanize_feature_name,
     compare_customer_models,
 )
-
-__all__ = [
+__all__=[
     "build_and_save_all_explainers",
     "build_and_save_shap_explainer",
     "load_shap_explainer",

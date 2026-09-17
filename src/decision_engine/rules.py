@@ -3,9 +3,7 @@ Prescriptive Action Engine (Next-Best-Action Rules).
 Maps calibrated churn risk tiers and individual SHAP root-cause drivers to actionable retention playbooks.
 """
 from typing import Any, Dict, List, Optional
-
-# Standard Action Definitions
-PLAYBOOKS = {
+PLAYBOOKS={
     "CONTRACT_UPGRADE": {
         "action_code": "ACT_CONTRACT_UPGRADE",
         "action_title": "1-Year Commitment Upgrade with 15% Monthly Discount Lock-in",
@@ -81,93 +79,72 @@ PLAYBOOKS = {
         )
     }
 }
-
-
 def prescribe_retention_action(
     churn_prob: float,
     top_shap_drivers: List[Dict[str, Any]],
-    customer_record: Optional[Dict[str, Any]] = None
+    customer_record: Optional[Dict[str, Any]]=None
 ) -> Dict[str, Any]:
     """
     Evaluates churn probability and positive SHAP risk drivers to prescribe Next-Best-Action.
-
     Args:
         churn_prob: Calibrated churn prediction probability [0.0, 1.0].
         top_shap_drivers: Ordered list of top positive SHAP contributors, e.g.:
             [{'feature': 'Contract_Month-to-month', 'shap_value': 0.18, 'display_name': 'Month-to-month Contract'}, ...]
         customer_record: Optional original raw customer attributes dictionary.
-
     Returns:
         Structured prescriptive recommendation dictionary.
     """
-    # 1. Low Risk Tier (P < 0.40)
-    if churn_prob < 0.40:
-        recommendation = PLAYBOOKS["ORGANIC_NURTURE"].copy()
-        recommendation["trigger_rationale"] = (
+    if churn_prob<0.40:
+        recommendation=PLAYBOOKS["ORGANIC_NURTURE"].copy()
+        recommendation["trigger_rationale"]=(
             f"Low calibrated churn risk ({churn_prob * 100:.1f}%). Account is in the safe loyalty zone."
         )
         return recommendation
-
-    # Extract driver names from top positive contributors
-    driver_features = [d.get("feature", "").lower() for d in top_shap_drivers]
-    primary_driver = top_shap_drivers[0]["display_name"] if top_shap_drivers else "General Risk"
-
-    # 2. Critical Risk Tier (P >= 0.70)
-    if churn_prob >= 0.70:
-        # Check if contract is a dominant driver
+    driver_features=[d.get("feature", "").lower() for d in top_shap_drivers]
+    primary_driver=top_shap_drivers[0]["display_name"] if top_shap_drivers else "General Risk"
+    if churn_prob>=0.70:
         if any("contract" in f and "month" in f for f in driver_features):
-            rec = PLAYBOOKS["CONTRACT_UPGRADE"].copy()
-            rec["trigger_rationale"] = (
+            rec=PLAYBOOKS["CONTRACT_UPGRADE"].copy()
+            rec["trigger_rationale"]=(
                 f"Critical risk ({churn_prob * 100:.1f}%) predominantly fueled by {primary_driver}. "
                 "Urgent contractual lock-in required before next billing cycle."
             )
             return rec
-
-        # Check if payment method friction is dominant
         if any("payment" in f or "electronic" in f for f in driver_features):
-            rec = PLAYBOOKS["AUTOPAY_INCENTIVE"].copy()
-            rec["trigger_rationale"] = (
+            rec=PLAYBOOKS["AUTOPAY_INCENTIVE"].copy()
+            rec["trigger_rationale"]=(
                 f"Critical risk ({churn_prob * 100:.1f}%) driven by payment method friction ({primary_driver}). "
                 "Switching to automated billing stabilizes retention."
             )
             return rec
-
-        # Check if pricing / charge velocity is dominant
         if any("charge" in f or "monthly" in f for f in driver_features):
-            rec = PLAYBOOKS["LOYALTY_BUNDLE_REPACK"].copy()
+            rec=PLAYBOOKS["LOYALTY_BUNDLE_REPACK"].copy()
             rec["priority"] = "CRITICAL"
-            rec["trigger_rationale"] = (
+            rec["trigger_rationale"]=(
                 f"Critical risk ({churn_prob * 100:.1f}%) driven by high pricing perception ({primary_driver})."
             )
             return rec
-
-        # Fallback for critical tier
-        rec = PLAYBOOKS["CONTRACT_UPGRADE"].copy()
-        rec["trigger_rationale"] = (
+        rec=PLAYBOOKS["CONTRACT_UPGRADE"].copy()
+        rec["trigger_rationale"]=(
             f"Critical risk ({churn_prob * 100:.1f}%) with primary risk driver: {primary_driver}."
         )
         return rec
-
-    # 3. Moderate Risk Tier (0.40 <= P < 0.70)
     if any("techsupport" in f or "security" in f for f in driver_features):
-        rec = PLAYBOOKS["TECH_SUPPORT_VIP"].copy()
-        rec["trigger_rationale"] = (
+        rec=PLAYBOOKS["TECH_SUPPORT_VIP"].copy()
+        rec["trigger_rationale"]=(
             f"Moderate risk ({churn_prob * 100:.1f}%) linked to missing service security/support ({primary_driver}). "
             "Free trial creates stickiness."
         )
         return rec
-
     if any("contract" in f for f in driver_features):
-        rec = PLAYBOOKS["CONTRACT_UPGRADE"].copy()
+        rec=PLAYBOOKS["CONTRACT_UPGRADE"].copy()
         rec["priority"] = "HIGH"
-        rec["trigger_rationale"] = (
+        rec["trigger_rationale"]=(
             f"Moderate risk ({churn_prob * 100:.1f}%) with Month-to-month vulnerability ({primary_driver})."
         )
         return rec
-
-    # Default moderate tier action
-    rec = PLAYBOOKS["PROACTIVE_CHECKIN"].copy()
-    rec["trigger_rationale"] = (
+    rec=PLAYBOOKS["PROACTIVE_CHECKIN"].copy()
+    rec["trigger_rationale"]=(
         f"Moderate risk ({churn_prob * 100:.1f}%) driven by {primary_driver}. Relationship outreach recommended."
     )
     return rec

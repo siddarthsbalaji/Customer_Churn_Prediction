@@ -2,27 +2,20 @@
 Global Configuration & Constant Definitions for Customer Churn Decision Engine.
 """
 from pathlib import Path
-
-# Base Paths
-PROJECT_ROOT = Path(__file__).resolve().parent.parent
-DATA_DIR = PROJECT_ROOT / "data"
-RAW_DATA_DIR = DATA_DIR / "raw"
-PROCESSED_DATA_DIR = DATA_DIR / "processed"
-SAMPLE_UPLOADS_DIR = DATA_DIR / "sample_uploads"
-MODELS_DIR = PROJECT_ROOT / "models"
-
-# Artifact Files
-PIPELINE_ARTIFACT_PATH = MODELS_DIR / "churn_pipeline.joblib"
-SHAP_EXPLAINER_ARTIFACT_PATH = MODELS_DIR / "shap_explainer.joblib"
-METADATA_ARTIFACT_PATH = MODELS_DIR / "model_metadata.json"
-
-# Multi-Model Pipeline & Explainer Artifact Paths
-RF_PIPELINE_PATH = MODELS_DIR / "random_forest_pipeline.joblib"
-LR_PIPELINE_PATH = MODELS_DIR / "logistic_regression_pipeline.joblib"
-RF_EXPLAINER_PATH = MODELS_DIR / "random_forest_explainer.joblib"
-LR_EXPLAINER_PATH = MODELS_DIR / "logistic_regression_explainer.joblib"
-
-MODEL_REGISTRY = {
+PROJECT_ROOT=Path(__file__).resolve().parent.parent
+DATA_DIR=PROJECT_ROOT / "data"
+RAW_DATA_DIR=DATA_DIR / "raw"
+PROCESSED_DATA_DIR=DATA_DIR / "processed"
+SAMPLE_UPLOADS_DIR=DATA_DIR / "sample_uploads"
+MODELS_DIR=PROJECT_ROOT / "models"
+PIPELINE_ARTIFACT_PATH=MODELS_DIR / "churn_pipeline.joblib"
+SHAP_EXPLAINER_ARTIFACT_PATH=MODELS_DIR / "shap_explainer.joblib"
+METADATA_ARTIFACT_PATH=MODELS_DIR / "model_metadata.json"
+RF_PIPELINE_PATH=MODELS_DIR / "random_forest_pipeline.joblib"
+LR_PIPELINE_PATH=MODELS_DIR / "logistic_regression_pipeline.joblib"
+RF_EXPLAINER_PATH=MODELS_DIR / "random_forest_explainer.joblib"
+LR_EXPLAINER_PATH=MODELS_DIR / "logistic_regression_explainer.joblib"
+MODEL_REGISTRY={
     "random_forest": {
         "key": "random_forest",
         "display_name": "Random Forest (Champion Ensemble)",
@@ -41,18 +34,14 @@ MODEL_REGISTRY = {
     }
 }
 DEFAULT_MODEL_KEY = "random_forest"
-
-# Canonical Dataset Schema (IBM Telco Customer Churn)
 ID_COLUMN = "customerID"
 TARGET_COLUMN = "Churn"
-
-NUMERIC_FEATURES = [
+NUMERIC_FEATURES=[
     "tenure",
     "MonthlyCharges",
     "TotalCharges"
 ]
-
-CATEGORICAL_FEATURES = [
+CATEGORICAL_FEATURES=[
     "gender",
     "SeniorCitizen",
     "Partner",
@@ -70,19 +59,14 @@ CATEGORICAL_FEATURES = [
     "PaperlessBilling",
     "PaymentMethod"
 ]
-
-ALL_FEATURES = NUMERIC_FEATURES + CATEGORICAL_FEATURES
-
-# Decision Engine Risk Tiers & Calibrated Thresholds
-DEFAULT_DECISION_THRESHOLD = 0.45
-RISK_TIERS = {
-    "CRITICAL": 0.70,   # P >= 0.70
-    "MODERATE": 0.40,   # 0.40 <= P < 0.70
-    "LOW": 0.00         # P < 0.40
+ALL_FEATURES=NUMERIC_FEATURES+CATEGORICAL_FEATURES
+DEFAULT_DECISION_THRESHOLD=0.45
+RISK_TIERS={
+    "CRITICAL": 0.70,   
+    "MODERATE": 0.40,   
+    "LOW": 0.00         
 }
-
-# Column Aliases for Dynamic Customer Upload Schema Mapping
-COLUMN_ALIASES = {
+COLUMN_ALIASES={
     "customerID": ["customerid", "customer_id", "id", "account_id", "account_number"],
     "tenure": ["tenure", "tenure_months", "months_active", "customer_tenure"],
     "MonthlyCharges": ["monthlycharges", "monthly_charges", "monthly_spend", "monthly_bill", "monthly_fee", "mrr"],
