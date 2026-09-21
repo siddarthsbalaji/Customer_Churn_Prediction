@@ -102,6 +102,23 @@ def main():
             st.markdown(f"**Test Recall (τ*):** `{recall*100:.1f}%`")
             st.markdown(f"**Test F2 Score:** `{f2:.3f}`")
         st.markdown("---")
+        st.markdown("### 🔑 AI Schema Classifier")
+        from src.config import GEMINI_API_KEY, OPENAI_API_KEY
+        configured_key = GEMINI_API_KEY or OPENAI_API_KEY
+        if configured_key:
+            st.success("API Key detected in `.env`")
+        else:
+            st.caption("No API key in `.env`. Using heuristic mode.")
+        user_key = st.text_input(
+            "API Key (UI Override):",
+            value=st.session_state.get("custom_api_key", ""),
+            type="password",
+            help="Enter a Google Gemini or OpenAI API key to classify custom dataset metrics."
+        )
+        if user_key != st.session_state.get("custom_api_key", ""):
+            st.session_state["custom_api_key"] = user_key
+            st.rerun()
+        st.markdown("---")
         st.markdown("### Workflow Navigation")
         st.markdown("""
         1. **Ingest Dataset:** Upload arbitrary customer CSV.
@@ -110,7 +127,7 @@ def main():
         4. **Head-to-Head Comparison:** Compare RF vs. LR divergence.
         """)
         st.markdown("---")
-        st.caption("Powered by Scikit-Learn, SHAP & FastAPI.")
+        st.caption("Powered by Scikit-Learn, SHAP, FastAPI & Gemini/OpenAI.")
     aligned_df=render_uploader_component()
     if aligned_df is None or len(aligned_df)==0:
         return

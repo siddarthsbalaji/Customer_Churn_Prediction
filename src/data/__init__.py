@@ -13,6 +13,8 @@ from src.data.preprocessor import (
     EXTENDED_CATEGORICAL_FEATURES,
 )
 from src.data.validator import validate_and_align_dataset, CORE_MANDATORY_COLUMNS
+from src.data.adapter import adapt_custom_dataset
+
 __all__=[
     "TelcoDataCleaner",
     "encode_target_series",
@@ -26,4 +28,5 @@ __all__=[
     "EXTENDED_CATEGORICAL_FEATURES",
     "validate_and_align_dataset",
     "CORE_MANDATORY_COLUMNS",
+    "adapt_custom_dataset",
 ]

@@ -1,0 +1,11 @@
+client_code,nationality,credit_score,account_age_months,balance,monthly_fee,plan_duration,payment_channel,is_churned
+BANK-701,France,619,2,3500.50,45.20,Month-to-month,Electronic check,Yes
+BANK-702,Spain,608,41,85000.00,75.40,One year,Bank transfer,No
+BANK-703,Germany,502,8,120000.00,89.90,Month-to-month,Electronic check,Yes
+BANK-704,France,699,39,0.00,32.10,One year,Mailed check,No
+BANK-705,Spain,850,5,79000.50,62.00,Month-to-month,Credit card,No
+BANK-706,Germany,645,1,113000.00,95.50,Month-to-month,Electronic check,Yes
+BANK-707,France,822,50,0.00,28.75,Two year,Credit card,No
+BANK-708,Germany,376,4,115000.00,82.40,Month-to-month,Electronic check,Yes
+BANK-709,France,584,24,90000.00,55.00,One year,Bank transfer,No
+BANK-710,Spain,712,12,45000.00,48.30,Month-to-month,Electronic check,No

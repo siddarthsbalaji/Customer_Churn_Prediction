@@ -2,7 +2,7 @@
   "default_model": "random_forest",
   "model_name": "RandomForest_Champion",
   "model_type": "RandomForestClassifier",
-  "trained_at_utc": "2026-09-09T07:59:06.678316+00:00",
+  "trained_at_utc": "2026-09-21T16:40:57.550513+00:00",
   "training_records": 5634,
   "test_records": 1409,
   "optimal_threshold": 0.21,

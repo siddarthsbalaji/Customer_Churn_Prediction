@@ -33,7 +33,8 @@ def build_alias_lookup() -> Dict[str, str]:
             lookup[normalize_column_name(alias)]=canonical
     return lookup
 def validate_and_align_dataset(
-    df: pd.DataFrame
+    df: pd.DataFrame,
+    allow_custom_adapter: bool = False
 ) -> Tuple[Optional[pd.DataFrame], List[str], List[str]]:
     """
     Validates uploaded DataFrame, maps aliased columns, checks for required fields,
@@ -56,6 +57,20 @@ def validate_and_align_dataset(
         if mandatory_col not in aligned_df.columns:
             missing_required.append(mandatory_col)
     if missing_required:
+        if allow_custom_adapter:
+            try:
+                from src.ai.metric_classifier import classify_dataset
+                from src.data.adapter import adapt_custom_dataset
+                classification = classify_dataset(df)
+                adapted_df, meta = adapt_custom_dataset(df, classification)
+                warnings.extend(meta.get("warnings", []))
+                warnings.append(
+                    f"Dataset schema differed from standard Telco layout. "
+                    f"Automatically adapted via {classification.provider_used} with statistical defaults."
+                )
+                return adapted_df, [], warnings
+            except Exception:
+                pass
         return None, missing_required, warnings
     for feat in ALL_FEATURES:
         if feat not in aligned_df.columns:

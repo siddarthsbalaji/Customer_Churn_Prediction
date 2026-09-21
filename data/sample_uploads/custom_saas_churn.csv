@@ -1,0 +1,9 @@
+org_id,country,mrr,months_active,billing_cycle,tier,support_plan,attrition_flag
+SAAS-001,USA,249.00,3,Monthly,Growth,Basic,1
+SAAS-002,UK,499.00,36,Annual,Enterprise,Premium,0
+SAAS-003,Germany,99.00,1,Monthly,Starter,None,1
+SAAS-004,Canada,1200.00,24,Annual,Enterprise,Premium,0
+SAAS-005,France,350.00,7,Monthly,Growth,None,1
+SAAS-006,Australia,550.00,18,Annual,Growth,Premium,0
+SAAS-007,Japan,150.00,2,Monthly,Starter,Basic,1
+SAAS-008,Netherlands,800.00,45,Annual,Enterprise,Premium,0

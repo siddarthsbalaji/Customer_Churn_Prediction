@@ -82,21 +82,34 @@ def render_priority_matrix(
     filtered_df=ranked_df[ranked_df["risk_tier"].isin(tier_filter)]
     if search_query.strip():
         filtered_df=filtered_df[filtered_df["customerID"].astype(str).str.contains(search_query.strip(), case=False)]
-    display_cols=[
-        "customerID", "churn_risk_pct", "risk_tier", "MonthlyCharges",
+    standard_internal = set(ALL_FEATURES) | {
+        "customerID", "churn_probability", "churn_risk_pct", "is_at_risk",
+        "risk_tier", "primary_risk_driver", "prescribed_action", "Churn"
+    }
+    custom_cols = [c for c in filtered_df.columns if c not in standard_internal]
+
+    display_cols = ["customerID"] + custom_cols + [
+        "churn_risk_pct", "risk_tier", "MonthlyCharges",
         "tenure", "Contract", "primary_risk_driver", "prescribed_action"
     ]
+    # Filter only available columns
+    actual_display_cols = [c for c in display_cols if c in filtered_df.columns]
+
+    rename_map = {
+        "customerID": "Account ID",
+        "churn_risk_pct": "Churn Risk (%)",
+        "risk_tier": "Risk Tier",
+        "MonthlyCharges": "MRR ($)",
+        "tenure": "Tenure (Mo)",
+        "Contract": "Contract",
+        "primary_risk_driver": "Primary Risk Driver",
+        "prescribed_action": "Prescribed Retention Action"
+    }
+    for c in custom_cols:
+        rename_map[c] = f"🌐 {c.replace('_', ' ').title()}"
+
     st.dataframe(
-        filtered_df[display_cols].rename(columns={
-            "customerID": "Account ID",
-            "churn_risk_pct": "Churn Risk (%)",
-            "risk_tier": "Risk Tier",
-            "MonthlyCharges": "MRR ($)",
-            "tenure": "Tenure (Mo)",
-            "Contract": "Contract",
-            "primary_risk_driver": "Primary Risk Driver",
-            "prescribed_action": "Prescribed Retention Action"
-        }),
+        filtered_df[actual_display_cols].rename(columns=rename_map),
         use_container_width=True,
         height=320
     )
@@ -109,9 +122,21 @@ def render_priority_matrix(
         help="Download complete dataset enriched with churn scores, risk tiers, and playbooks."
     )
     customer_options=ranked_df["customerID"].tolist()
+
+    def format_customer_label(cid: str) -> str:
+        row = ranked_df[ranked_df["customerID"] == cid].iloc[0]
+        context_parts = []
+        for c in ["nationality", "country"]:
+            if c in ranked_df.columns:
+                context_parts.append(str(row[c]))
+        risk_pct = row["churn_risk_pct"]
+        ctx = f" ({', '.join(context_parts)})" if context_parts else ""
+        return f"{cid}{ctx} — {risk_pct:.1f}% Risk [{row['risk_tier']}]"
+
     selected_customer_id=st.selectbox(
         "Select customer account for deep-dive root-cause diagnostics & What-If simulation:",
         options=customer_options,
-        index=0 if customer_options else 0
+        index=0 if customer_options else 0,
+        format_func=format_customer_label
     )
     return ranked_df, selected_customer_id
