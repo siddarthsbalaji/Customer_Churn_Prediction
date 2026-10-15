@@ -18,22 +18,24 @@ from sklearn.metrics import (
 from sklearn.model_selection import StratifiedKFold, cross_val_predict
 from sklearn.pipeline import Pipeline
 def compute_metrics_at_threshold(
-    y_true: np.ndarray,
-    y_prob: np.ndarray,
+    y_true: Any,
+    y_prob: Any,
     threshold: float=0.5
 ) -> Dict[str, float]:
     """Computes comprehensive classification metrics at a given decision threshold."""
-    y_pred=(y_prob>=threshold).astype(int)
-    tn, fp, fn, tp=confusion_matrix(y_true, y_pred, labels=[0, 1]).ravel()
+    y_true_arr = np.asarray(y_true)
+    y_prob_arr = np.asarray(y_prob)
+    y_pred=(y_prob_arr>=threshold).astype(int)
+    tn, fp, fn, tp=confusion_matrix(y_true_arr, y_pred, labels=[0, 1]).ravel()
     metrics={
         "threshold": float(round(threshold, 4)),
-        "accuracy": float(round(accuracy_score(y_true, y_pred), 4)),
-        "precision": float(round(precision_score(y_true, y_pred, zero_division=0), 4)),
-        "recall": float(round(recall_score(y_true, y_pred, zero_division=0), 4)),
-        "f1": float(round(f1_score(y_true, y_pred, zero_division=0), 4)),
-        "f2": float(round(fbeta_score(y_true, y_pred, beta=2, zero_division=0), 4)),
-        "roc_auc": float(round(roc_auc_score(y_true, y_prob), 4)),
-        "pr_auc": float(round(average_precision_score(y_true, y_prob), 4)),
+        "accuracy": float(round(accuracy_score(y_true_arr, y_pred), 4)),
+        "precision": float(round(precision_score(y_true_arr, y_pred, zero_division=0), 4)),
+        "recall": float(round(recall_score(y_true_arr, y_pred, zero_division=0), 4)),
+        "f1": float(round(f1_score(y_true_arr, y_pred, zero_division=0), 4)),
+        "f2": float(round(fbeta_score(y_true_arr, y_pred, beta=2, zero_division=0), 4)),
+        "roc_auc": float(round(roc_auc_score(y_true_arr, y_prob_arr), 4)),
+        "pr_auc": float(round(average_precision_score(y_true_arr, y_prob_arr), 4)),
         "true_positives": int(tp),
         "false_positives": int(fp),
         "true_negatives": int(tn),
@@ -41,8 +43,8 @@ def compute_metrics_at_threshold(
     }
     return metrics
 def find_optimal_threshold(
-    y_true: np.ndarray,
-    y_prob: np.ndarray,
+    y_true: Any,
+    y_prob: Any,
     cost_fn: float=500.0,
     cost_fp: float=35.0,
     threshold_range: Tuple[float, float]=(0.1, 0.9),
@@ -53,6 +55,8 @@ def find_optimal_threshold(
     Business cost formula:
         Total Cost = (False Negatives * CLV Loss) + (False Positives * Incentive Cost)
     """
+    y_true_arr = np.asarray(y_true)
+    y_prob_arr = np.asarray(y_prob)
     thresholds=np.linspace(threshold_range[0], threshold_range[1], steps)
     best_f2 = -1.0
     best_f2_threshold=0.5
@@ -60,9 +64,9 @@ def find_optimal_threshold(
     best_cost_threshold=0.5
     threshold_curve=[]
     for t in thresholds:
-        y_pred=(y_prob>=t).astype(int)
-        tn, fp, fn, tp=confusion_matrix(y_true, y_pred, labels=[0, 1]).ravel()
-        f2=fbeta_score(y_true, y_pred, beta=2, zero_division=0)
+        y_pred=(y_prob_arr>=t).astype(int)
+        tn, fp, fn, tp=confusion_matrix(y_true_arr, y_pred, labels=[0, 1]).ravel()
+        f2=fbeta_score(y_true_arr, y_pred, beta=2, zero_division=0)
         total_loss=(fn*cost_fn)+(fp*cost_fp)
         if f2>best_f2:
             best_f2=f2

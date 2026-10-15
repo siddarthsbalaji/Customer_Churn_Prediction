@@ -25,8 +25,8 @@ def render_simulator_component(
     if "sim_active_id" not in st.session_state or st.session_state.sim_active_id!=customer_id:
         st.session_state.sim_active_id=customer_id
         st.session_state.sim_contract=str(baseline_series.get("Contract", "Month-to-month"))
-        st.session_state.sim_payment=str(baseline_series.get("PaymentMethod", "Electronic check"))
-        st.session_state.sim_mrr=float(baseline_series.get("MonthlyCharges", 65.0))
+        raw_mrr_val = baseline_series.get("MonthlyCharges", 65.0)
+        st.session_state.sim_mrr = float(raw_mrr_val) if pd.notna(raw_mrr_val) else 65.0
         st.session_state.sim_tech=str(baseline_series.get("TechSupport", "No"))
         st.session_state.sim_security=str(baseline_series.get("OnlineSecurity", "No"))
     col_ctrl1, col_ctrl2=st.columns(2)

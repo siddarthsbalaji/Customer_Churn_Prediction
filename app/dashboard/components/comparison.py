@@ -126,7 +126,7 @@ def render_comparison_component(
     correlation=float(np.corrcoef(rf_batch_probs, xgb_batch_probs)[0, 1])
     k4.metric("Pearson Model Correlation", f"{correlation:.3f}", "R-value")
     with st.expander("⚠️ View Accounts with Largest Model Disagreements (|ΔP| > 15%)", expanded=False):
-        divergent_df=batch_comp_df.sort_values(by="delta_prob", key=abs, ascending=False).head(15)
+        divergent_df=batch_comp_df.sort_values(by="delta_prob", key=lambda s: s.abs(), ascending=False).head(15)
         st.dataframe(
             divergent_df.rename(columns={
                 "customerID": "Account ID",

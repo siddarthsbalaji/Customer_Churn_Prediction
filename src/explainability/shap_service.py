@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 import joblib
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 import numpy as np
 import pandas as pd
 import shap
@@ -185,7 +186,7 @@ def render_customer_waterfall_figure(
     max_display: int=10,
     customer_id: str = "Target Customer",
     model_name: str = "Model"
-) -> plt.Figure:
+) -> Figure:
     """
     Renders a formatted Matplotlib Waterfall plot for a selected customer row.
     """

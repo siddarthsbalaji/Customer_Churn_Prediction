@@ -3,6 +3,7 @@ Unit Tests for SHAP Explainability Service and Prescriptive Decision Engine.
 """
 import unittest
 import matplotlib.pyplot as plt
+from matplotlib.figure import Figure
 import pandas as pd
 from src.config import (
     METADATA_ARTIFACT_PATH,
@@ -90,7 +91,7 @@ class TestShapService(unittest.TestCase):
             max_display=8,
             customer_id="TEST-ROW-0"
         )
-        self.assertIsInstance(fig, plt.Figure)
+        self.assertIsInstance(fig, Figure)
         plt.close(fig)
 if __name__ == "__main__":
     unittest.main()

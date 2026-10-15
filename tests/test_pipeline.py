@@ -71,6 +71,8 @@ class TestSchemaValidator(unittest.TestCase):
             df_messy=pd.read_csv(sample_path)
             aligned_df, missing_cols, warnings=validate_and_align_dataset(df_messy)
             self.assertEqual(len(missing_cols), 0, f"Unexpected missing columns: {missing_cols}")
+            self.assertIsNotNone(aligned_df)
+            assert aligned_df is not None
             self.assertIn("tenure", aligned_df.columns)
             self.assertIn("MonthlyCharges", aligned_df.columns)
             self.assertIn("Contract", aligned_df.columns)

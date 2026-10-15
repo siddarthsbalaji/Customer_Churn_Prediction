@@ -25,7 +25,7 @@ async def process_batch_risk(
     Ingests dynamic user CSV file, validates columns, executes batch model scoring
     with the selected model, and returns prioritized customer accounts ranked by churn probability.
     """
-    if not file.filename.endswith(".csv"):
+    if not file.filename or not file.filename.endswith(".csv"):
         raise HTTPException(
             status_code=400,
             detail="Unsupported file format. Please upload a valid CSV file (.csv)."
@@ -46,7 +46,7 @@ async def process_batch_risk(
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Failed to parse uploaded CSV: {str(e)}")
     aligned_df, missing_cols, warnings=validate_and_align_dataset(raw_df)
-    if missing_cols:
+    if missing_cols or aligned_df is None:
         raise HTTPException(
             status_code=422,
             detail={
@@ -72,7 +72,8 @@ async def process_batch_risk(
     for _, row in aligned_df.iterrows():
         p=float(row["churn_probability"])
         cust_id=str(row.get("customerID", "CUST-UNKNOWN"))
-        mrr=float(row.get("MonthlyCharges", 0.0))
+        raw_mrr=row.get("MonthlyCharges", 0.0)
+        mrr=float(raw_mrr) if pd.notna(raw_mrr) else 0.0
         if str(row.get("Contract", "")) == "Month-to-month":
             primary_driver = "Month-to-month Contract (High Risk)"
             driver_key = "Contract_Month-to-month"
