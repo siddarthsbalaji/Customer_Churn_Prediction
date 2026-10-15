@@ -86,7 +86,7 @@ class ExplanationResponse(BaseModel):
 class ModelComparisonResponse(BaseModel):
     customer_id: str
     random_forest: PredictionResponse
-    logistic_regression: PredictionResponse
+    xgboost: PredictionResponse
     probability_delta: float
     tier_agreement: bool
     agreed_risk_drivers: List[str]

@@ -17,8 +17,8 @@ async def process_batch_risk(
     file: UploadFile=File(...),
     model: str=Query(
         default="random_forest",
-        pattern="^(random_forest|logistic_regression)$",
-        description="Choose model: 'random_forest' or 'logistic_regression'"
+        pattern="^(random_forest|xgboost)$",
+        description="Choose model: 'random_forest' or 'xgboost'"
     )
 ):
     """
@@ -38,7 +38,7 @@ async def process_batch_risk(
     if pipeline is None:
         raise HTTPException(status_code=503, detail=f"Model pipeline '{model}' is currently unavailable.")
     model_meta=metadata.get("models", {}).get(model, {})
-    default_thresh=0.210 if model == "random_forest" else 0.310
+    default_thresh=0.210 if model == "random_forest" else 0.240
     threshold=model_meta.get("optimal_threshold", default_thresh)
     contents=await file.read()
     try:
@@ -118,8 +118,8 @@ async def export_batch_risk_csv(
     file: UploadFile=File(...),
     model: str=Query(
         default="random_forest",
-        pattern="^(random_forest|logistic_regression)$",
-        description="Choose model: 'random_forest' or 'logistic_regression'"
+        pattern="^(random_forest|xgboost)$",
+        description="Choose model: 'random_forest' or 'xgboost'"
     )
 ):
     """

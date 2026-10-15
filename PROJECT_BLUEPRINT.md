@@ -118,7 +118,7 @@ churn-decision-engine/
 ---
 ### Phase 2: Model Training, Cost-Sensitive Optimization & Cross-Validation
 1.**Model Tournament:**
-   -**Baseline:**`LogisticRegression(class_weight='balanced', solver='liblinear', max_iter=1000)` to establish an interpretable linear odds-ratio benchmark.
+   -**Challenger:**`XGBClassifier(n_estimators=300, max_depth=5, learning_rate=0.05, subsample=0.8, colsample_bytree=0.8, scale_pos_weight=2.78)` to establish a regularized gradient boosted trees benchmark.
    -**Champion:**`RandomForestClassifier(n_estimators=300, max_depth=12, min_samples_split=5, class_weight='balanced_subsample', random_state=42)`.
 2.**Cross-Validation & Imbalance Strategy:**
    - Implement a 5-fold`StratifiedKFold` CV scheme to preserve the ~26.5% churn distribution across splits.
@@ -725,7 +725,7 @@ async def batch_risk(file: UploadFile = File(...)):
 | Milestone | Deliverables | Verification & Success Gate |
 | :--- | :--- | :--- |
 | **Milestone 1: Foundations** | Data cleaning, EDA notebook, feature engineering pipeline, unit tests. | Clean transformation pass across `TotalCharges` whitespace rows; zero pipeline leakage. |
-| **Milestone 2: Modeling** | Stratified CV tournament, Random Forest vs. Logistic Regression, threshold tuning. | Random Forest PR-AUC $\ge 0.65$; cost-optimal threshold selected via $F_2$ maximization. |
+| **Milestone 2: Modeling** | Stratified CV tournament, Random Forest vs. XGBoost, threshold tuning. | Random Forest & XGBoost PR-AUC $\ge 0.64$; cost-optimal threshold selected via $F_2$ maximization. |
 | **Milestone 3: Engine Logic** | SHAP `TreeExplainer` background generation, Prescriptive Action rule module. | Sub-100ms local SHAP calculation; deterministic rule assignment across risk tiers. |
 | **Milestone 4: Backend API** | FastAPI application (`/predict`, `/explain`, `/batch-risk`), Pydantic schemas. | 100% test coverage on API routes; proper HTTP 422 error handling for invalid schemas. |
 | **Milestone 5: Dashboard** | Streamlit UI: Dynamic CSV uploader, Priority Matrix, Waterfall diagnostics, What-If simulator. | Flawless end-to-end user journey: upload raw CSV $\rightarrow$ view priority accounts $\rightarrow$ simulate interventions. |

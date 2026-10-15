@@ -104,21 +104,21 @@ class TestFullPipeline(unittest.TestCase):
         self.assertEqual(len(feature_names), X_train_trans.shape[1])
     def test_pipeline_serialization(self):
         import tempfile
-        from sklearn.linear_model import LogisticRegression
+        from xgboost import XGBClassifier
         from src.models.pipeline import build_churn_model_pipeline, save_pipeline_artifacts, load_pipeline_artifacts
         raw_csv=RAW_DATA_DIR / "WA_Fn-UseC_-Telco-Customer-Churn.csv"
         X, y=load_raw_dataset(raw_csv)
         X_sub, y_sub=X.head(100), y.head(100)
-        pipe=build_churn_model_pipeline(classifier=LogisticRegression(max_iter=200))
+        pipe=build_churn_model_pipeline(classifier=XGBClassifier(n_estimators=5, max_depth=2, random_state=42))
         pipe.fit(X_sub, y_sub)
         with tempfile.TemporaryDirectory() as tmpdir:
             model_path=Path(tmpdir) / "test_pipeline.joblib"
             meta_path=Path(tmpdir) / "metadata.json"
-            metadata={"model_name": "LogisticRegression", "threshold": 0.45}
+            metadata={"model_name": "XGBoost", "threshold": 0.45}
             save_pipeline_artifacts(pipe, metadata, model_path, meta_path)
             loaded_pipe, loaded_meta=load_pipeline_artifacts(model_path, meta_path)
             preds=loaded_pipe.predict(X_sub.head(5))
             self.assertEqual(len(preds), 5)
-            self.assertEqual(loaded_meta["model_name"], "LogisticRegression")
+            self.assertEqual(loaded_meta["model_name"], "XGBoost")
 if __name__ == "__main__":
     unittest.main()

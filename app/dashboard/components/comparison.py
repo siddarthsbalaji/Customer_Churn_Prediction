@@ -1,6 +1,6 @@
 """
 Dual-Model Head-to-Head Comparison Component for Streamlit.
-Enables side-by-side evaluation of Random Forest vs. Logistic Regression
+Enables side-by-side evaluation of Random Forest vs. XGBoost
 for individual customer accounts and across the batch dataset.
 """
 from typing import Any, Dict, List
@@ -28,14 +28,14 @@ def render_comparison_component(
     st.markdown("### ⚖️ Head-to-Head Model Comparison")
     st.caption(
         "Evaluate prediction variance, tier concordance, and root-cause driver divergence "
-        "between **Random Forest (Champion Ensemble)** and **Logistic Regression (Linear Baseline)**."
+        "between **Random Forest (Champion Ensemble)** and **XGBoost (Gradient Boosted Trees)**."
     )
     feature_names=metadata.get("encoded_feature_names", [])
     rf_meta=metadata.get("models", {}).get("random_forest", {})
-    lr_meta=metadata.get("models", {}).get("logistic_regression", {})
+    xgb_meta=metadata.get("models", {}).get("xgboost", {})
     thresholds={
         "random_forest": rf_meta.get("optimal_threshold", 0.210),
-        "logistic_regression": lr_meta.get("optimal_threshold", 0.310)
+        "xgboost": xgb_meta.get("optimal_threshold", 0.240)
     }
     st.markdown(f"#### 1. Account `{selected_customer_id}`: Cross-Model Diagnosis")
     cust_row=df[df["customerID"]==selected_customer_id]
@@ -49,9 +49,9 @@ def render_comparison_component(
         thresholds=thresholds
     )
     rf_res=comparison["random_forest"]
-    lr_res=comparison["logistic_regression"]
+    xgb_res=comparison["xgboost"]
     delta_p=comparison["probability_delta"]
-    col_rf, col_delta, col_lr=st.columns([3, 2, 3])
+    col_rf, col_delta, col_xgb=st.columns([3, 2, 3])
     with col_rf:
         rf_tier=rf_res["risk_tier"]
         rf_badge = f"badge-{rf_tier.lower()}"
@@ -72,14 +72,14 @@ def render_comparison_component(
             <p><b>Tier Match:</b> {'✅ Identical' if comparison['tier_agreement'] else '⚠️ Divergent'}</p>
         </div>
         """, unsafe_allow_html=True)
-    with col_lr:
-        lr_tier=lr_res["risk_tier"]
-        lr_badge = f"badge-{lr_tier.lower()}"
+    with col_xgb:
+        xgb_tier=xgb_res["risk_tier"]
+        xgb_badge = f"badge-{xgb_tier.lower()}"
         st.markdown(f"""
-        <div class="metric-card" style="border-left: 4px solid #3b82f6;">
-            <div class="metric-label">Logistic Regression (Linear)</div>
-            <div class="metric-value">{lr_res['churn_probability']*100:.1f}%</div>
-            <p><span class="{lr_badge}">{lr_tier} RISK</span> (Threshold: {thresholds['logistic_regression']:.3f})</p>
+        <div class="metric-card" style="border-left: 4px solid #f59e0b;">
+            <div class="metric-label">XGBoost (Gradient Boosted)</div>
+            <div class="metric-value">{xgb_res['churn_probability']*100:.1f}%</div>
+            <p><span class="{xgb_badge}">{xgb_tier} RISK</span> (Threshold: {thresholds['xgboost']:.3f})</p>
         </div>
         """, unsafe_allow_html=True)
     st.markdown("##### 🔍 Top Root-Cause Drivers Comparison")
@@ -89,8 +89,8 @@ def render_comparison_component(
         for d in rf_res["top_drivers"]:
             st.markdown(f"- **{d['display_name']}**: `+{d['shap_value']:.4f}`")
     with dcol2:
-        st.markdown("**Logistic Regression Key Drivers (Linear Log-Odds):**")
-        for d in lr_res["top_drivers"]:
+        st.markdown("**XGBoost Key Drivers (Gradient Tree Boosted Splits):**")
+        for d in xgb_res["top_drivers"]:
             st.markdown(f"- **{d['display_name']}**: `+{d['shap_value']:.4f}`")
     if comparison["agreed_risk_drivers"]:
         st.success(f"🤝 **Consensus Drivers Across Both Models:** {', '.join(comparison['agreed_risk_drivers'])}")
@@ -98,15 +98,15 @@ def render_comparison_component(
     st.markdown("#### 2. Batch Population Concordance Analysis")
     st.caption("Evaluate overall risk population agreement across all uploaded customer accounts.")
     rf_pipe=pipelines["random_forest"]
-    lr_pipe=pipelines["logistic_regression"]
+    xgb_pipe=pipelines["xgboost"]
     rf_batch_probs=rf_pipe.predict_proba(df)[:, 1]
-    lr_batch_probs=lr_pipe.predict_proba(df)[:, 1]
+    xgb_batch_probs=xgb_pipe.predict_proba(df)[:, 1]
     batch_comp_df=df[["customerID", "MonthlyCharges", "tenure", "Contract"]].copy()
     batch_comp_df["rf_prob"]=rf_batch_probs.round(4)
-    batch_comp_df["lr_prob"]=lr_batch_probs.round(4)
-    batch_comp_df["delta_prob"]=(rf_batch_probs-lr_batch_probs).round(4)
+    batch_comp_df["xgb_prob"]=xgb_batch_probs.round(4)
+    batch_comp_df["delta_prob"]=(rf_batch_probs-xgb_batch_probs).round(4)
     rf_thresh=thresholds["random_forest"]
-    lr_thresh=thresholds["logistic_regression"]
+    xgb_thresh=thresholds["xgboost"]
     def assign_tier(p: float) -> str:
         if p>=0.70:
             return "CRITICAL"
@@ -114,16 +114,16 @@ def render_comparison_component(
             return "MODERATE"
         return "LOW"
     batch_comp_df["rf_tier"]=batch_comp_df["rf_prob"].apply(assign_tier)
-    batch_comp_df["lr_tier"]=batch_comp_df["lr_prob"].apply(assign_tier)
-    batch_comp_df["tier_match"]=batch_comp_df["rf_tier"]==batch_comp_df["lr_tier"]
+    batch_comp_df["xgb_tier"]=batch_comp_df["xgb_prob"].apply(assign_tier)
+    batch_comp_df["tier_match"]=batch_comp_df["rf_tier"]==batch_comp_df["xgb_tier"]
     rf_at_risk=int((batch_comp_df["rf_prob"]>=rf_thresh).sum())
-    lr_at_risk=int((batch_comp_df["lr_prob"]>=lr_thresh).sum())
+    xgb_at_risk=int((batch_comp_df["xgb_prob"]>=xgb_thresh).sum())
     disagreed_tiers=int((~batch_comp_df["tier_match"]).sum())
     k1, k2, k3, k4=st.columns(4)
     k1.metric("RF At-Risk Accounts", f"{rf_at_risk:,}", f"{(rf_at_risk/len(df))*100:.1f}%")
-    k2.metric("LR At-Risk Accounts", f"{lr_at_risk:,}", f"{(lr_at_risk/len(df))*100:.1f}%")
+    k2.metric("XGBoost At-Risk Accounts", f"{xgb_at_risk:,}", f"{(xgb_at_risk/len(df))*100:.1f}%")
     k3.metric("Tier Disagreements", f"{disagreed_tiers:,}", f"{(disagreed_tiers/len(df))*100:.1f}% divergence")
-    correlation=float(np.corrcoef(rf_batch_probs, lr_batch_probs)[0, 1])
+    correlation=float(np.corrcoef(rf_batch_probs, xgb_batch_probs)[0, 1])
     k4.metric("Pearson Model Correlation", f"{correlation:.3f}", "R-value")
     with st.expander("⚠️ View Accounts with Largest Model Disagreements (|ΔP| > 15%)", expanded=False):
         divergent_df=batch_comp_df.sort_values(by="delta_prob", key=abs, ascending=False).head(15)
@@ -134,10 +134,10 @@ def render_comparison_component(
                 "tenure": "Tenure (Mo)",
                 "Contract": "Contract",
                 "rf_prob": "Random Forest Risk",
-                "lr_prob": "Logistic Regression Risk",
-                "delta_prob": "Variance (RF - LR)",
+                "xgb_prob": "XGBoost Risk",
+                "delta_prob": "Variance (RF - XGB)",
                 "rf_tier": "RF Tier",
-                "lr_tier": "LR Tier",
+                "xgb_tier": "XGBoost Tier",
                 "tier_match": "Tiers Match"
             }),
             use_container_width=True

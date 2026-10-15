@@ -1,6 +1,6 @@
 """
 Model Training & Tournament Orchestrator for Customer Churn Decision Engine.
-Trains Baseline (Logistic Regression) vs. Champion (Random Forest),
+Trains Champion (Random Forest) vs. Challenger (XGBoost),
 optimizes decision threshold, and serializes production pipeline artifacts.
 """
 from datetime import datetime, timezone
@@ -10,7 +10,7 @@ from typing import Any, Dict, Tuple
 import numpy as np
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
+from xgboost import XGBClassifier
 from src.config import (
     MODELS_DIR,
     PIPELINE_ARTIFACT_PATH,
@@ -34,18 +34,23 @@ from src.models.pipeline import (
 def get_candidate_models() -> Dict[str, Any]:
     """Returns candidate estimators for tournament evaluation."""
     return {
-        "LogisticRegression_Baseline": LogisticRegression(
-            class_weight="balanced",
-            max_iter=1000,
-            solver="lbfgs",
-            random_state=42
-        ),
         "RandomForest_Champion": RandomForestClassifier(
             n_estimators=300,
             max_depth=12,
             min_samples_split=5,
             min_samples_leaf=2,
             class_weight="balanced_subsample",
+            random_state=42,
+            n_jobs=-1
+        ),
+        "XGBoost_Challenger": XGBClassifier(
+            n_estimators=300,
+            max_depth=5,
+            learning_rate=0.05,
+            subsample=0.8,
+            colsample_bytree=0.8,
+            scale_pos_weight=2.78,
+            eval_metric="logloss",
             random_state=42,
             n_jobs=-1
         )
@@ -102,23 +107,31 @@ def train_and_evaluate_tournament(
         print(f"  Test Recall (0.5): {test_metrics_default['recall']:.4f} | Test Precision: {test_metrics_default['precision']:.4f}")
         print(f"  Calibrated Threshold (τ*): {opt_thresh:.3f}")
         print(f"  Test Recall (τ*):  {test_metrics_optimal['recall']:.4f} | Test F2: {test_metrics_optimal['f2']:.4f}")
-    champion_name = "RandomForest_Champion"
+    rf_eval=tournament_results["RandomForest_Champion"]
+    xgb_eval=tournament_results["XGBoost_Challenger"]
+    if xgb_eval["test_metrics_optimal"]["f2"] > rf_eval["test_metrics_optimal"]["f2"]:
+        champion_name = "XGBoost_Challenger"
+        default_model_key = "xgboost"
+        champion_type = "XGBClassifier"
+    else:
+        champion_name = "RandomForest_Champion"
+        default_model_key = "random_forest"
+        champion_type = "RandomForestClassifier"
+
     champion_pipeline=fitted_pipelines[champion_name]
     champion_eval=tournament_results[champion_name]
     calibrated_threshold=champion_eval["calibrated_threshold"]
-    feature_names=get_feature_names(fitted_pipelines["RandomForest_Champion"].named_steps["preprocessor"])
-    rf_eval=tournament_results["RandomForest_Champion"]
-    lr_eval=tournament_results["LogisticRegression_Baseline"]
+    feature_names=get_feature_names(champion_pipeline.named_steps["preprocessor"])
     metadata={
-        "default_model": "random_forest",
-        "model_name": "RandomForest_Champion",
-        "model_type": "RandomForestClassifier",
+        "default_model": default_model_key,
+        "model_name": champion_name,
+        "model_type": champion_type,
         "trained_at_utc": datetime.now(timezone.utc).isoformat(),
         "training_records": len(X_train),
         "test_records": len(X_test),
-        "optimal_threshold": rf_eval["calibrated_threshold"],
-        "cost_optimal_threshold": rf_eval["cost_optimal_threshold"],
-        "champion_test_metrics": rf_eval["test_metrics_optimal"],
+        "optimal_threshold": champion_eval["calibrated_threshold"],
+        "cost_optimal_threshold": champion_eval["cost_optimal_threshold"],
+        "champion_test_metrics": champion_eval["test_metrics_optimal"],
         "models": {
             "random_forest": {
                 "key": "random_forest",
@@ -131,16 +144,16 @@ def train_and_evaluate_tournament(
                 "metrics_default": rf_eval["test_metrics_default"],
                 "metrics_calibrated": rf_eval["test_metrics_optimal"]
             },
-            "logistic_regression": {
-                "key": "logistic_regression",
-                "model_name": "LogisticRegression_Baseline",
-                "display_name": "Logistic Regression (Linear Baseline)",
-                "model_type": "LogisticRegression",
-                "pipeline_file": "logistic_regression_pipeline.joblib",
-                "optimal_threshold": lr_eval["calibrated_threshold"],
-                "cost_optimal_threshold": lr_eval["cost_optimal_threshold"],
-                "metrics_default": lr_eval["test_metrics_default"],
-                "metrics_calibrated": lr_eval["test_metrics_optimal"]
+            "xgboost": {
+                "key": "xgboost",
+                "model_name": "XGBoost_Challenger",
+                "display_name": "XGBoost (Gradient Boosted Trees)",
+                "model_type": "XGBClassifier",
+                "pipeline_file": "xgboost_pipeline.joblib",
+                "optimal_threshold": xgb_eval["calibrated_threshold"],
+                "cost_optimal_threshold": xgb_eval["cost_optimal_threshold"],
+                "metrics_default": xgb_eval["test_metrics_default"],
+                "metrics_calibrated": xgb_eval["test_metrics_optimal"]
             }
         },
         "tournament_comparison": {
@@ -158,7 +171,7 @@ def train_and_evaluate_tournament(
         "encoded_feature_names": feature_names
     }
     print(f"\n--- Serializing Multi-Model Pipelines & Metadata ---")
-    from src.config import RF_PIPELINE_PATH, LR_PIPELINE_PATH
+    from src.config import RF_PIPELINE_PATH, XGB_PIPELINE_PATH
     save_pipeline_artifacts(
         pipeline=fitted_pipelines["RandomForest_Champion"],
         metadata=metadata,
@@ -166,20 +179,30 @@ def train_and_evaluate_tournament(
         metadata_path=METADATA_ARTIFACT_PATH
     )
     save_pipeline_artifacts(
-        pipeline=fitted_pipelines["RandomForest_Champion"],
+        pipeline=champion_pipeline,
         metadata=metadata,
         pipeline_path=PIPELINE_ARTIFACT_PATH,
         metadata_path=METADATA_ARTIFACT_PATH
     )
     save_pipeline_artifacts(
-        pipeline=fitted_pipelines["LogisticRegression_Baseline"],
+        pipeline=fitted_pipelines["XGBoost_Challenger"],
         metadata=metadata,
-        pipeline_path=LR_PIPELINE_PATH,
+        pipeline_path=XGB_PIPELINE_PATH,
         metadata_path=METADATA_ARTIFACT_PATH
     )
-    print(f"Random Forest Pipeline saved to:     {RF_PIPELINE_PATH}")
-    print(f"Logistic Regression Pipeline saved to: {LR_PIPELINE_PATH}")
-    print(f"Master Metadata saved to:              {METADATA_ARTIFACT_PATH}")
+    print(f"Random Forest Pipeline saved to: {RF_PIPELINE_PATH}")
+    print(f"XGBoost Pipeline saved to:       {XGB_PIPELINE_PATH}")
+    print(f"Champion Pipeline saved to:      {PIPELINE_ARTIFACT_PATH} ({champion_name})")
+    print(f"Master Metadata saved to:        {METADATA_ARTIFACT_PATH}")
+    print(f"\n--- Serializing SHAP TreeExplainers ---")
+    from src.explainability.shap_service import build_and_save_all_explainers
+    build_and_save_all_explainers(
+        pipelines={
+            "random_forest": fitted_pipelines["RandomForest_Champion"],
+            "xgboost": fitted_pipelines["XGBoost_Challenger"]
+        },
+        X_train=X_train
+    )
     print("=" * 65)
     return fitted_pipelines, metadata
 if __name__ == "__main__":

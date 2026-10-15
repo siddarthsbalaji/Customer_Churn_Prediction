@@ -1,13 +1,27 @@
 """
 Executive Customer Churn Decision Engine — Master Streamlit Application.
-Features dynamic model selection (Random Forest vs. Logistic Regression)
+Features dynamic model selection (Random Forest vs. XGBoost)
 and side-by-side comparative diagnostics.
 """
 import sys
 from pathlib import Path
-PROJECT_ROOT=Path(__file__).resolve().parent.parent.parent
-if str(PROJECT_ROOT) not in sys.path:
-    sys.path.insert(0, str(PROJECT_ROOT))
+
+# Clean script directory from sys.path and ensure PROJECT_ROOT is at sys.path[0]
+# to prevent namespace collisions (e.g. app/ package vs app.py)
+PROJECT_ROOT = Path(__file__).resolve().parent.parent.parent
+script_dir = str(Path(__file__).resolve().parent)
+while script_dir in sys.path:
+    sys.path.remove(script_dir)
+
+root_str = str(PROJECT_ROOT)
+while root_str in sys.path:
+    sys.path.remove(root_str)
+sys.path.insert(0, root_str)
+
+# Ensure 'app' in sys.modules is a valid package, not shadowed by an app.py module
+if "app" in sys.modules and not hasattr(sys.modules["app"], "__path__"):
+    del sys.modules["app"]
+
 for mod in list(sys.modules.keys()):
     if mod.startswith("src.") or mod.startswith("app.dashboard.components"):
         del sys.modules[mod]
@@ -19,8 +33,8 @@ from app.dashboard.components.simulator import render_simulator_component
 from app.dashboard.components.uploader import render_uploader_component
 from app.dashboard.styles import apply_custom_styles
 from src.config import (
-    LR_EXPLAINER_PATH,
-    LR_PIPELINE_PATH,
+    XGB_EXPLAINER_PATH,
+    XGB_PIPELINE_PATH,
     METADATA_ARTIFACT_PATH,
     PIPELINE_ARTIFACT_PATH,
     RF_EXPLAINER_PATH,
@@ -46,19 +60,19 @@ def load_application_resources():
         rf_pipeline, metadata=load_pipeline_artifacts(RF_PIPELINE_PATH, METADATA_ARTIFACT_PATH)
     else:
         rf_pipeline, metadata=load_pipeline_artifacts(PIPELINE_ARTIFACT_PATH, METADATA_ARTIFACT_PATH)
-    if LR_PIPELINE_PATH.exists():
-        lr_pipeline, _=load_pipeline_artifacts(LR_PIPELINE_PATH, METADATA_ARTIFACT_PATH)
+    if XGB_PIPELINE_PATH.exists():
+        xgb_pipeline, _=load_pipeline_artifacts(XGB_PIPELINE_PATH, METADATA_ARTIFACT_PATH)
     else:
-        lr_pipeline=rf_pipeline
+        xgb_pipeline=rf_pipeline
     rf_explainer=load_shap_explainer(RF_EXPLAINER_PATH if RF_EXPLAINER_PATH.exists() else SHAP_EXPLAINER_ARTIFACT_PATH)
-    lr_explainer=load_shap_explainer(LR_EXPLAINER_PATH) if LR_EXPLAINER_PATH.exists() else rf_explainer
+    xgb_explainer=load_shap_explainer(XGB_EXPLAINER_PATH) if XGB_EXPLAINER_PATH.exists() else rf_explainer
     pipelines={
         "random_forest": rf_pipeline,
-        "logistic_regression": lr_pipeline
+        "xgboost": xgb_pipeline
     }
     explainers={
         "random_forest": rf_explainer,
-        "logistic_regression": lr_explainer
+        "xgboost": xgb_explainer
     }
     return pipelines, metadata, explainers
 def main():
@@ -76,22 +90,22 @@ def main():
         st.markdown("### 🤖 Active ML Model")
         active_model_key=st.radio(
             "Select inference model:",
-            options=["random_forest", "logistic_regression"],
+            options=["random_forest", "xgboost"],
             format_func=lambda k: (
                 "🌲 Random Forest (Champion Ensemble)"
                 if k == "random_forest"
-                else "📈 Logistic Regression (Linear Baseline)"
+                else "⚡ XGBoost (Gradient Boosted Trees)"
             ),
             help="Switch active model to compare risk scores, thresholds, and SHAP drivers."
         )
         active_pipeline=pipelines[active_model_key]
         active_explainer=explainers[active_model_key]
-        alt_model_key = "logistic_regression" if active_model_key == "random_forest" else "random_forest"
+        alt_model_key = "xgboost" if active_model_key == "random_forest" else "random_forest"
         alt_pipeline=pipelines[alt_model_key]
-        model_display_name = "Random Forest" if active_model_key == "random_forest" else "Logistic Regression"
-        alt_display_name = "Logistic Regression" if active_model_key == "random_forest" else "Random Forest"
+        model_display_name = "Random Forest" if active_model_key == "random_forest" else "XGBoost"
+        alt_display_name = "XGBoost" if active_model_key == "random_forest" else "Random Forest"
         model_meta=metadata.get("models", {}).get(active_model_key, {})
-        default_thresh=0.210 if active_model_key == "random_forest" else 0.310
+        default_thresh=0.210 if active_model_key == "random_forest" else 0.240
         active_threshold=model_meta.get("optimal_threshold", default_thresh)
         st.markdown("---")
         st.markdown(f"**Model Type:** `{model_meta.get('model_type', model_display_name)}`")
@@ -124,7 +138,7 @@ def main():
         1. **Ingest Dataset:** Upload arbitrary customer CSV.
         2. **Priority Matrix:** Filter accounts by active model.
         3. **Diagnostics & What-If:** Audit SHAP drivers & simulate.
-        4. **Head-to-Head Comparison:** Compare RF vs. LR divergence.
+        4. **Head-to-Head Comparison:** Compare RF vs. XGBoost divergence.
         """)
         st.markdown("---")
         st.caption("Powered by Scikit-Learn, SHAP, FastAPI & Gemini/OpenAI.")
@@ -147,7 +161,7 @@ def main():
     tab_diagnostics, tab_simulator, tab_comparison=st.tabs([
         f"🔬 Individual Customer Diagnostics ({model_display_name})",
         "🧪 'What-If' Counterfactual Retention Sandbox",
-        "⚖️ Dual-Model Head-to-Head Comparison (RF vs. LR)"
+        "⚖️ Dual-Model Head-to-Head Comparison (RF vs. XGBoost)"
     ])
     with tab_diagnostics:
         render_diagnostics_component(

@@ -1,6 +1,6 @@
 """
 SHAP Explainability Service for Customer Churn Decision Engine.
-Supports TreeExplainer (Random Forest) and LinearExplainer (Logistic Regression),
+Supports TreeExplainer for Random Forest and XGBoost,
 feature humanization, local waterfall diagnostics, and cross-model comparison.
 """
 from pathlib import Path
@@ -12,7 +12,7 @@ import pandas as pd
 import shap
 from sklearn.pipeline import Pipeline
 from src.config import (
-    LR_EXPLAINER_PATH,
+    XGB_EXPLAINER_PATH,
     RF_EXPLAINER_PATH,
     SHAP_EXPLAINER_ARTIFACT_PATH,
 )
@@ -58,16 +58,17 @@ def build_and_save_all_explainers(
     background_samples: int=50
 ) -> Dict[str, Any]:
     """
-    Constructs and serializes explainers for both Random Forest (TreeExplainer)
-    and Logistic Regression (LinearExplainer).
+    Constructs and serializes TreeExplainers for both Random Forest and XGBoost.
     """
     explainers={}
     rf_pipe=pipelines.get("random_forest")
-    lr_pipe=pipelines.get("logistic_regression")
+    xgb_pipe=pipelines.get("xgboost")
     if rf_pipe is None and "RandomForest_Champion" in pipelines:
         rf_pipe=pipelines["RandomForest_Champion"]
-    if lr_pipe is None and "LogisticRegression_Baseline" in pipelines:
-        lr_pipe=pipelines["LogisticRegression_Baseline"]
+    if xgb_pipe is None and "XGBoost_Challenger" in pipelines:
+        xgb_pipe=pipelines["XGBoost_Challenger"]
+    elif xgb_pipe is None and "XGBoost_Candidate" in pipelines:
+        xgb_pipe=pipelines["XGBoost_Candidate"]
     cleaner=rf_pipe.named_steps["cleaner"]
     engineer=rf_pipe.named_steps["engineer"]
     preprocessor=rf_pipe.named_steps["preprocessor"]
@@ -82,14 +83,14 @@ def build_and_save_all_explainers(
     RF_EXPLAINER_PATH.parent.mkdir(parents=True, exist_ok=True)
     joblib.dump({"explainer": rf_explainer, "background_sample": background_sample}, RF_EXPLAINER_PATH, compress=3)
     joblib.dump({"explainer": rf_explainer, "background_sample": background_sample}, SHAP_EXPLAINER_ARTIFACT_PATH, compress=3)
-    print("Building Logistic Regression LinearExplainer...")
-    lr_clf=lr_pipe.named_steps["classifier"]
-    lr_explainer=shap.LinearExplainer(lr_clf, background_sample)
-    explainers["logistic_regression"]=lr_explainer
-    LR_EXPLAINER_PATH.parent.mkdir(parents=True, exist_ok=True)
-    joblib.dump({"explainer": lr_explainer, "background_sample": background_sample}, LR_EXPLAINER_PATH, compress=3)
-    print(f"Random Forest explainer saved to:     {RF_EXPLAINER_PATH}")
-    print(f"Logistic Regression explainer saved to: {LR_EXPLAINER_PATH}")
+    print("Building XGBoost TreeExplainer...")
+    xgb_clf=xgb_pipe.named_steps["classifier"]
+    xgb_explainer=shap.TreeExplainer(xgb_clf)
+    explainers["xgboost"]=xgb_explainer
+    XGB_EXPLAINER_PATH.parent.mkdir(parents=True, exist_ok=True)
+    joblib.dump({"explainer": xgb_explainer, "background_sample": background_sample}, XGB_EXPLAINER_PATH, compress=3)
+    print(f"Random Forest explainer saved to: {RF_EXPLAINER_PATH}")
+    print(f"XGBoost explainer saved to:       {XGB_EXPLAINER_PATH}")
     return explainers
 def build_and_save_shap_explainer(
     pipeline: Pipeline,
@@ -146,7 +147,7 @@ def explain_single_customer(
 ) -> Dict[str, Any]:
     """
     Transforms a single customer row and calculates individual SHAP attributions.
-    Compatible with both Random Forest and Logistic Regression explainers.
+    Compatible with both Random Forest and XGBoost explainers.
     """
     cleaner=pipeline.named_steps["cleaner"]
     engineer=pipeline.named_steps["engineer"]
@@ -222,24 +223,24 @@ def compare_customer_models(
 ) -> Dict[str, Any]:
     """
     Generates a head-to-head comparative diagnosis of a customer between
-    Random Forest and Logistic Regression.
+    Random Forest and XGBoost.
     """
     rf_pipe=pipelines["random_forest"]
-    lr_pipe=pipelines["logistic_regression"]
+    xgb_pipe=pipelines["xgboost"]
     rf_exp=explainers["random_forest"]
-    lr_exp=explainers["logistic_regression"]
+    xgb_exp=explainers["xgboost"]
     rf_diag=explain_single_customer(rf_pipe, rf_exp, customer_raw_df, feature_names, top_k=3)
-    lr_diag=explain_single_customer(lr_pipe, lr_exp, customer_raw_df, feature_names, top_k=3)
+    xgb_diag=explain_single_customer(xgb_pipe, xgb_exp, customer_raw_df, feature_names, top_k=3)
     rf_prob=rf_diag["prediction_probability"]
-    lr_prob=lr_diag["prediction_probability"]
-    delta_prob=round(rf_prob-lr_prob, 4)
+    xgb_prob=xgb_diag["prediction_probability"]
+    delta_prob=round(rf_prob-xgb_prob, 4)
     rf_thresh=thresholds.get("random_forest", 0.210)
-    lr_thresh=thresholds.get("logistic_regression", 0.310)
+    xgb_thresh=thresholds.get("xgboost", 0.280)
     rf_tier = "CRITICAL" if rf_prob>=0.70 else ("MODERATE" if rf_prob>=0.40 else "LOW")
-    lr_tier = "CRITICAL" if lr_prob>=0.70 else ("MODERATE" if lr_prob>=0.40 else "LOW")
+    xgb_tier = "CRITICAL" if xgb_prob>=0.70 else ("MODERATE" if xgb_prob>=0.40 else "LOW")
     rf_driver_names=set(d["display_name"] for d in rf_diag["risk_drivers"])
-    lr_driver_names=set(d["display_name"] for d in lr_diag["risk_drivers"])
-    agreed_drivers=list(rf_driver_names.intersection(lr_driver_names))
+    xgb_driver_names=set(d["display_name"] for d in xgb_diag["risk_drivers"])
+    agreed_drivers=list(rf_driver_names.intersection(xgb_driver_names))
     return {
         "random_forest": {
             "churn_probability": rf_prob,
@@ -247,13 +248,13 @@ def compare_customer_models(
             "is_at_risk": rf_prob>=rf_thresh,
             "top_drivers": rf_diag["risk_drivers"]
         },
-        "logistic_regression": {
-            "churn_probability": lr_prob,
-            "risk_tier": lr_tier,
-            "is_at_risk": lr_prob>=lr_thresh,
-            "top_drivers": lr_diag["risk_drivers"]
+        "xgboost": {
+            "churn_probability": xgb_prob,
+            "risk_tier": xgb_tier,
+            "is_at_risk": xgb_prob>=xgb_thresh,
+            "top_drivers": xgb_diag["risk_drivers"]
         },
         "probability_delta": delta_prob,
-        "tier_agreement": rf_tier==lr_tier,
+        "tier_agreement": rf_tier==xgb_tier,
         "agreed_risk_drivers": agreed_drivers
     }

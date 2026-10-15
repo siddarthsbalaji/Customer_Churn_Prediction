@@ -73,7 +73,7 @@ make run-ui
 ## Development Roadmap
 - [x]**Step 1:**Project scaffolding, repository layout, dependency specification, and configuration setup.
 - [ ]**Step 2 (Phase 1):**IBM Telco dataset ingestion, custom Scikit-Learn transformers (data cleaning, feature engineering), and pipeline serialization.
-- [ ]**Step 3 (Phase 2):**Model tournament (Logistic Regression vs. Random Forest), 5-fold Stratified CV, and cost-benefit threshold calibration.
+- [ ]**Step 3 (Phase 2):**Model tournament (Random Forest vs. XGBoost), 5-fold Stratified CV, and cost-benefit threshold calibration.
 - [ ]**Step 4 (Phase 3):**SHAP explainability audit and Prescriptive Action Engine rule matrix.
 - [ ]**Step 5 (Phase 4):**FastAPI endpoints (`/predict`,`/explain`,`/batch-risk`).
 - [ ]**Step 6 (Phase 5):**Streamlit dashboard implementation (Dynamic uploader, priority table, waterfall plots,"What-If" simulator).

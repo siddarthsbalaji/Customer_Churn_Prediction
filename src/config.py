@@ -25,9 +25,9 @@ PIPELINE_ARTIFACT_PATH=MODELS_DIR / "churn_pipeline.joblib"
 SHAP_EXPLAINER_ARTIFACT_PATH=MODELS_DIR / "shap_explainer.joblib"
 METADATA_ARTIFACT_PATH=MODELS_DIR / "model_metadata.json"
 RF_PIPELINE_PATH=MODELS_DIR / "random_forest_pipeline.joblib"
-LR_PIPELINE_PATH=MODELS_DIR / "logistic_regression_pipeline.joblib"
+XGB_PIPELINE_PATH=MODELS_DIR / "xgboost_pipeline.joblib"
 RF_EXPLAINER_PATH=MODELS_DIR / "random_forest_explainer.joblib"
-LR_EXPLAINER_PATH=MODELS_DIR / "logistic_regression_explainer.joblib"
+XGB_EXPLAINER_PATH=MODELS_DIR / "xgboost_explainer.joblib"
 MODEL_REGISTRY={
     "random_forest": {
         "key": "random_forest",
@@ -37,13 +37,13 @@ MODEL_REGISTRY={
         "default_threshold": 0.210,
         "description": "Non-linear ensemble capturing complex multi-service customer interactions."
     },
-    "logistic_regression": {
-        "key": "logistic_regression",
-        "display_name": "Logistic Regression (Linear Baseline)",
-        "pipeline_path": LR_PIPELINE_PATH,
-        "explainer_path": LR_EXPLAINER_PATH,
-        "default_threshold": 0.310,
-        "description": "Interpretable linear model with transparent odds-ratio risk contributions."
+    "xgboost": {
+        "key": "xgboost",
+        "display_name": "XGBoost (Gradient Boosted Trees)",
+        "pipeline_path": XGB_PIPELINE_PATH,
+        "explainer_path": XGB_EXPLAINER_PATH,
+        "default_threshold": 0.280,
+        "description": "High-performance gradient boosting ensemble capturing non-linear interactions with regularized tree splits."
     }
 }
 DEFAULT_MODEL_KEY = "random_forest"

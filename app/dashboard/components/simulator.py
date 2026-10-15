@@ -12,7 +12,7 @@ def render_simulator_component(
     customer_id: str,
     model_name: str = "Random Forest",
     alt_pipeline: Optional[Pipeline]=None,
-    alt_model_name: str = "Logistic Regression"
+    alt_model_name: str = "XGBoost"
 ):
     """
     Real-time counterfactual simulation sandbox enabling retention managers

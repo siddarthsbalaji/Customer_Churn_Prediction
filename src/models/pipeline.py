@@ -6,7 +6,6 @@ from typing import Any, Dict, Optional, Tuple
 import joblib
 from sklearn.base import BaseEstimator
 from sklearn.ensemble import RandomForestClassifier
-from sklearn.linear_model import LogisticRegression
 from sklearn.pipeline import Pipeline
 from src.config import PIPELINE_ARTIFACT_PATH, METADATA_ARTIFACT_PATH
 from src.data.cleaner import TelcoDataCleaner

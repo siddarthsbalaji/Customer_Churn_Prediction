@@ -7,8 +7,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.routes import batch, compare, explain, health, predict
 from src.config import (
-    LR_EXPLAINER_PATH,
-    LR_PIPELINE_PATH,
+    XGB_EXPLAINER_PATH,
+    XGB_PIPELINE_PATH,
     METADATA_ARTIFACT_PATH,
     PIPELINE_ARTIFACT_PATH,
     RF_EXPLAINER_PATH,
@@ -21,7 +21,7 @@ from src.models.pipeline import load_pipeline_artifacts
 async def lifespan(app: FastAPI):
     """
     Application Lifespan Event Handler.
-    Pre-loads Random Forest and Logistic Regression pipelines, explainers, and metadata into app.state.
+    Pre-loads Random Forest and XGBoost pipelines, explainers, and metadata into app.state.
     """
     print("\n--- Initializing Customer Churn Decision Engine API (Dual Model Support) ---")
     models={}
@@ -38,10 +38,10 @@ async def lifespan(app: FastAPI):
         print("Loaded default champion pipeline as Random Forest.")
     else:
         app.state.metadata=None
-    if LR_PIPELINE_PATH.exists():
-        lr_pipe, _=load_pipeline_artifacts(LR_PIPELINE_PATH, METADATA_ARTIFACT_PATH)
-        models["logistic_regression"]=lr_pipe
-        print("Loaded Logistic Regression pipeline.")
+    if XGB_PIPELINE_PATH.exists():
+        xgb_pipe, _=load_pipeline_artifacts(XGB_PIPELINE_PATH, METADATA_ARTIFACT_PATH)
+        models["xgboost"]=xgb_pipe
+        print("Loaded XGBoost pipeline.")
     if RF_EXPLAINER_PATH.exists():
         rf_exp=load_shap_explainer(RF_EXPLAINER_PATH)
         explainers["random_forest"]=rf_exp
@@ -49,10 +49,10 @@ async def lifespan(app: FastAPI):
     elif SHAP_EXPLAINER_ARTIFACT_PATH.exists():
         rf_exp=load_shap_explainer(SHAP_EXPLAINER_ARTIFACT_PATH)
         explainers["random_forest"]=rf_exp
-    if LR_EXPLAINER_PATH.exists():
-        lr_exp=load_shap_explainer(LR_EXPLAINER_PATH)
-        explainers["logistic_regression"]=lr_exp
-        print("Loaded Logistic Regression LinearExplainer.")
+    if XGB_EXPLAINER_PATH.exists():
+        xgb_exp=load_shap_explainer(XGB_EXPLAINER_PATH)
+        explainers["xgboost"]=xgb_exp
+        print("Loaded XGBoost TreeExplainer.")
     app.state.models=models
     app.state.explainers=explainers
     app.state.pipeline=models.get("random_forest")
@@ -71,7 +71,7 @@ app=FastAPI(
     description=(
         "Production REST API serving calibrated customer churn risk predictions, "
         "local SHAP root-cause attributions, batch CSV schema validation, and Next-Best-Action playbooks "
-        "across Random Forest and Logistic Regression models."
+        "across Random Forest and XGBoost models."
     ),
     version="1.0.0",
     lifespan=lifespan

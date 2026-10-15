@@ -13,8 +13,8 @@ def explain_single_customer_route(
     request: Request,
     model: str=Query(
         default="random_forest",
-        pattern="^(random_forest|logistic_regression)$",
-        description="Choose model: 'random_forest' or 'logistic_regression'"
+        pattern="^(random_forest|xgboost)$",
+        description="Choose model: 'random_forest' or 'xgboost'"
     )
 ):
     """

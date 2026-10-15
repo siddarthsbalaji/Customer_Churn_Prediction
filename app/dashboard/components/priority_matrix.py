@@ -5,6 +5,7 @@ from typing import Optional, Tuple
 import pandas as pd
 import streamlit as st
 from sklearn.pipeline import Pipeline
+from src.config import ALL_FEATURES
 from src.decision_engine.rules import prescribe_retention_action
 def render_priority_matrix(
     pipeline: Pipeline,

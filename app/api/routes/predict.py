@@ -11,13 +11,13 @@ def predict_single_customer(
     request: Request,
     model: str=Query(
         default="random_forest",
-        pattern="^(random_forest|logistic_regression)$",
-        description="Choose model: 'random_forest' or 'logistic_regression'"
+        pattern="^(random_forest|xgboost)$",
+        description="Choose model: 'random_forest' or 'xgboost'"
     )
 ):
     """
     Evaluates calibrated churn risk probability for a single customer record
-    using the specified model ('random_forest' or 'logistic_regression').
+    using the specified model ('random_forest' or 'xgboost').
     """
     models=getattr(request.app.state, "models", {})
     metadata=getattr(request.app.state, "metadata", {})
@@ -30,7 +30,7 @@ def predict_single_customer(
             detail=f"Model pipeline '{model}' is currently unavailable."
         )
     model_meta=metadata.get("models", {}).get(model, {})
-    default_thresh=0.210 if model == "random_forest" else 0.310
+    default_thresh=0.210 if model == "random_forest" else 0.240
     threshold=model_meta.get("optimal_threshold", default_thresh)
     customer_dict=payload.model_dump()
     cust_id=customer_dict.get("customerID", "CUST-DEFAULT")
