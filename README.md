@@ -71,9 +71,10 @@ make run-ui
 ```
 ---
 ## Development Roadmap
-- [x]**Step 1:**Project scaffolding, repository layout, dependency specification, and configuration setup.
-- [ ]**Step 2 (Phase 1):**IBM Telco dataset ingestion, custom Scikit-Learn transformers (data cleaning, feature engineering), and pipeline serialization.
-- [ ]**Step 3 (Phase 2):**Model tournament (Random Forest vs. XGBoost), 5-fold Stratified CV, and cost-benefit threshold calibration.
-- [ ]**Step 4 (Phase 3):**SHAP explainability audit and Prescriptive Action Engine rule matrix.
-- [ ]**Step 5 (Phase 4):**FastAPI endpoints (`/predict`,`/explain`,`/batch-risk`).
-- [ ]**Step 6 (Phase 5):**Streamlit dashboard implementation (Dynamic uploader, priority table, waterfall plots,"What-If" simulator).
+- [x] **Step 1:** Project scaffolding, repository layout, dependency specification, and configuration setup.
+- [x] **Step 2 (Phase 1):** IBM Telco dataset ingestion, custom Scikit-Learn transformers (data cleaning, feature engineering), and pipeline serialization.
+- [x] **Step 3 (Phase 2):** Model tournament (Random Forest vs. XGBoost), 5-fold Stratified CV, and cost-benefit threshold calibration.
+- [x] **Step 4 (Phase 3):** SHAP explainability audit and Prescriptive Action Engine rule matrix.
+- [x] **Step 5 (Phase 4):** FastAPI endpoints (`/predict`, `/explain`, `/batch-risk`, `/compare`, `/health`).
+- [x] **Step 6 (Phase 5):** Streamlit dashboard implementation (Dynamic uploader, priority table, waterfall plots, "What-If" simulator, head-to-head model comparison).
+- [x] **Step 7 (AI & Schema Alignment):** AI-powered dynamic metric classifier (Gemini & OpenAI with heuristic fallback) supporting arbitrary dataset uploads (Banking, SaaS).

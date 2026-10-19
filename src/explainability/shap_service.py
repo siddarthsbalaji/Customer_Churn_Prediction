@@ -215,6 +215,77 @@ def render_customer_waterfall_figure(
     )
     plt.tight_layout()
     return fig
+
+
+def render_customer_waterfall_plotly(
+    explanation_dict: Dict[str, Any],
+    customer_id: str = "Target Customer",
+    model_name: str = "Model",
+    max_display: int = 8
+) -> Any:
+    """
+    Renders an interactive, responsive Plotly Waterfall chart from SHAP explanation attributions.
+    """
+    import plotly.graph_objects as go
+
+    base_val = explanation_dict.get("base_value", 0.0)
+    prob = explanation_dict.get("prediction_probability", 0.0)
+    risk_drivers = explanation_dict.get("risk_drivers", [])
+    protective = explanation_dict.get("protective_factors", [])
+
+    combined = sorted(
+        risk_drivers + protective,
+        key=lambda x: abs(x.get("shap_value", 0.0)),
+        reverse=True
+    )[:max_display]
+
+    x_labels = ["Base Expected E[f(x)]"]
+    y_values = [base_val]
+    measures = ["absolute"]
+    text_labels = [f"{base_val:+.3f}"]
+
+    for item in combined:
+        x_labels.append(item["display_name"])
+        shap_val = float(item["shap_value"])
+        y_values.append(shap_val)
+        measures.append("relative")
+        text_labels.append(f"{shap_val:+.3f}")
+
+    x_labels.append("Model Output f(x)")
+    y_values.append(0)
+    measures.append("total")
+    text_labels.append(f"{prob:.3f}")
+
+    fig = go.Figure(
+        go.Waterfall(
+            name="Attribution Impact",
+            orientation="v",
+            measure=measures,
+            x=x_labels,
+            textposition="outside",
+            text=text_labels,
+            y=y_values,
+            connector={"line": {"color": "rgba(100, 116, 139, 0.4)", "width": 1.5}},
+            increasing={"marker": {"color": "#ef4444"}},
+            decreasing={"marker": {"color": "#3b82f6"}},
+            totals={"marker": {"color": "#8b5cf6"}}
+        )
+    )
+
+    fig.update_layout(
+        title={
+            "text": f"<b>Interactive SHAP Attribution Diagnostics</b> ({model_name}) — Account <code>{customer_id}</code>",
+            "font": {"size": 14, "color": "#1e293b"}
+        },
+        showlegend=False,
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        margin=dict(l=20, r=20, t=50, b=80),
+        xaxis_tickangle=-35,
+        yaxis=dict(title="Attribution Impact", gridcolor="rgba(226, 232, 240, 0.8)"),
+        height=480
+    )
+    return fig
 def compare_customer_models(
     pipelines: Dict[str, Pipeline],
     explainers: Dict[str, Any],

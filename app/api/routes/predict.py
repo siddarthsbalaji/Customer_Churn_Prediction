@@ -44,7 +44,7 @@ def predict_single_customer(
         )
     if prob>=0.70:
         tier = "CRITICAL"
-    elif prob>=0.40:
+    elif prob>=threshold:
         tier = "MODERATE"
     else:
         tier = "LOW"

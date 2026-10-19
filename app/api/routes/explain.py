@@ -37,6 +37,9 @@ def explain_single_customer_route(
         )
     customer_dict=payload.model_dump()
     cust_id=customer_dict.get("customerID", "CUST-DEFAULT")
+    model_meta=metadata.get("models", {}).get(model, {})
+    default_thresh=0.210 if model == "random_forest" else 0.240
+    threshold=model_meta.get("optimal_threshold", default_thresh)
     feature_names=metadata.get("encoded_feature_names", [])
     df=pd.DataFrame([customer_dict])
     try:
@@ -53,11 +56,12 @@ def explain_single_customer_route(
             detail=f"SHAP attribution computation failed for '{model}': {str(e)}"
         )
     prob=explanation["prediction_probability"]
-    tier = "CRITICAL" if prob>=0.70 else ("MODERATE" if prob>=0.40 else "LOW")
+    tier = "CRITICAL" if prob>=0.70 else ("MODERATE" if prob>=threshold else "LOW")
     prescribed=prescribe_retention_action(
         churn_prob=prob,
         top_shap_drivers=explanation["risk_drivers"],
-        customer_record=customer_dict
+        customer_record=customer_dict,
+        decision_threshold=threshold
     )
     action_response=PrescribedActionResponse(
         action_code=prescribed["action_code"],

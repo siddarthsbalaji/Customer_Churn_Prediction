@@ -30,7 +30,7 @@ def render_priority_matrix(
     def assign_tier(p: float) -> str:
         if p>=0.70:
             return "CRITICAL"
-        elif p>=0.40:
+        elif p>=threshold:
             return "MODERATE"
         return "LOW"
     scored_df["risk_tier"]=scored_df["churn_probability"].apply(assign_tier)
@@ -55,7 +55,8 @@ def render_priority_matrix(
             driver_key = "MonthlyCharges"
         action=prescribe_retention_action(
             churn_prob=p,
-            top_shap_drivers=[{"feature": driver_key, "display_name": driver}]
+            top_shap_drivers=[{"feature": driver_key, "display_name": driver}],
+            decision_threshold=threshold
         )
         prescribed_actions.append(action["action_title"])
         primary_drivers.append(driver)

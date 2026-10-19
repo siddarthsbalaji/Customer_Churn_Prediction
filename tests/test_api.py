@@ -124,6 +124,26 @@ class TestFastAPIEndpoints(unittest.TestCase):
                 files={"file": ("bad_schema.csv", io.BytesIO(invalid_csv.encode("utf-8")), "text/csv")}
             )
             self.assertEqual(res.status_code, 422)
+    def test_batch_risk_custom_banking_csv(self):
+        csv_path=SAMPLE_UPLOADS_DIR / "custom_banking_churn.csv"
+        with open(csv_path, "rb") as f:
+            with TestClient(app) as client:
+                res=client.post(
+                    "/batch-risk?allow_custom_adapter=true",
+                    files={"file": ("custom_banking_churn.csv", f, "text/csv")}
+                )
+                self.assertEqual(res.status_code, 200)
+                data=res.json()
+                self.assertGreater(data["total_records"], 0)
+                self.assertIn("results", data)
+    def test_batch_risk_invalid_csv_schema_no_adapter(self):
+        invalid_csv = "gender,SeniorCitizen\nFemale,0\n"
+        with TestClient(app) as client:
+            res=client.post(
+                "/batch-risk?allow_custom_adapter=false",
+                files={"file": ("bad_schema.csv", io.BytesIO(invalid_csv.encode("utf-8")), "text/csv")}
+            )
+            self.assertEqual(res.status_code, 422)
     def test_batch_csv_export(self):
         csv_path=SAMPLE_UPLOADS_DIR / "valid_sample.csv"
         with open(csv_path, "rb") as f:

@@ -26,7 +26,7 @@ class TestDashboardLogic(unittest.TestCase):
         def assign_tier(p: float) -> str:
             if p>=0.70:
                 return "CRITICAL"
-            elif p>=0.40:
+            elif p>=threshold:
                 return "MODERATE"
             return "LOW"
         df["risk_tier"]=df["churn_probability"].apply(assign_tier)

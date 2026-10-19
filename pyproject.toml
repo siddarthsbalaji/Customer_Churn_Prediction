@@ -24,7 +24,10 @@ dependencies=[
 "uvicorn[standard]>=0.28.0",
 "pydantic>=2.6.0",
 "python-multipart>=0.0.9",
-"streamlit>=1.32.0"
+"requests>=2.31.0",
+"python-dotenv>=1.0.0",
+"streamlit>=1.32.0",
+"plotly>=5.18.0"
 ]
 [project.optional-dependencies]
 dev=[

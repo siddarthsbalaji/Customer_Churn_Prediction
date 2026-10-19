@@ -503,3 +503,80 @@ def classify_dataset(
     # Fallback to intelligent heuristics
     logger.info("Using heuristic fallback for metric classification.")
     return heuristic_classify_metrics(schema_summary)
+
+
+def generate_retention_outreach(
+    customer_id: str,
+    customer_record: Dict[str, Any],
+    churn_prob: float,
+    risk_drivers: List[Dict[str, Any]],
+    prescribed_action: Dict[str, Any],
+    api_key: Optional[str] = None
+) -> str:
+    """
+    Drafts tailored, high-converting retention outreach copy for an at-risk customer.
+    Uses Gemini/OpenAI if configured, otherwise falls back to smart structured copy.
+    """
+    primary_driver = risk_drivers[0]["display_name"] if risk_drivers else "General Plan Review"
+    action_title = prescribed_action.get("action_title", "Loyalty Review")
+    incentive = prescribed_action.get("incentive_type", "Special Consideration")
+    contract = str(customer_record.get("Contract", "Month-to-month"))
+    raw_mrr = customer_record.get("MonthlyCharges", 65.0)
+    mrr = float(raw_mrr) if pd.notna(raw_mrr) else 65.0
+
+    active_key = api_key or GEMINI_API_KEY or OPENAI_API_KEY
+    if active_key:
+        prompt = f"""You are a senior retention strategist for a telecommunications/SaaS enterprise.
+Draft a professional, empathetic retention outreach email for customer account {customer_id}:
+- Current plan: {contract} (${mrr:.2f}/month)
+- Risk driver diagnosed via SHAP: {primary_driver}
+- Prescribed intervention: {action_title}
+- Incentive offer: {incentive}
+
+Tone: Gracious, proactive, non-pushy, relationship-first.
+Do NOT mention ML models, SHAP scores, algorithms, or churn probabilities.
+Provide Subject line and clean Email body with placeholder for sender's name."""
+
+        try:
+            if GEMINI_API_KEY or (api_key and not OPENAI_API_KEY):
+                endpoint = f"https://generativelanguage.googleapis.com/v1beta/models/{GEMINI_MODEL}:generateContent?key={active_key}"
+                payload = {"contents": [{"parts": [{"text": prompt}]}]}
+                res = requests.post(endpoint, json=payload, timeout=10)
+                if res.status_code == 200:
+                    data = res.json()
+                    return data["candidates"][0]["content"]["parts"][0]["text"].strip()
+            elif OPENAI_API_KEY:
+                endpoint = "https://api.openai.com/v1/chat/completions"
+                headers = {"Authorization": f"Bearer {active_key}", "Content-Type": "application/json"}
+                payload = {
+                    "model": OPENAI_MODEL,
+                    "messages": [{"role": "user", "content": prompt}],
+                    "temperature": 0.7
+                }
+                res = requests.post(endpoint, headers=headers, json=payload, timeout=10)
+                if res.status_code == 200:
+                    data = res.json()
+                    return data["choices"][0]["message"]["content"].strip()
+        except Exception as e:
+            logger.warning(f"AI outreach generation failed, falling back to template: {e}")
+
+    # High-quality deterministic fallback
+    return f"""Subject: Special loyalty review for account {customer_id}
+
+Dear Valued Customer,
+
+Thank you for being a subscriber with us. As part of our ongoing commitment to ensuring you receive the best value from your services, our Customer Success team recently reviewed your active plan.
+
+We noticed your current {contract} plan (${mrr:.2f}/month) could benefit from an optimization, particularly regarding {primary_driver.lower()}.
+
+To ensure you enjoy the best experience and pricing stability, we would like to offer you our {action_title}:
+• Exclusive Incentive: {incentive}
+• Direct access to a dedicated support specialist
+
+Would you be open to a brief 5-minute conversation this week to discuss these options? Alternatively, feel free to reply directly to this email to lock in this offer.
+
+Warm regards,
+
+Customer Success & Retention Team
+Account Management | Direct: 1-800-555-RETENTION"""
+
